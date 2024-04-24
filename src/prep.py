@@ -2272,29 +2272,29 @@ class Prep():
                 if meta['is_disc'] == 'BDMV':
                     name = f"{title} {alt_title} {year} {three_d} {edition} {repack} {resolution} {region} {uhd} {source} {hdr} {video_codec} {audio}"
                     potential_missing = ['edition', 'region', 'distributor']
-                elif meta['is_disc'] == 'DVD': 
+                elif meta['is_disc'] == 'DVD':
                     name = f"{title} {alt_title} {year} {edition} {repack} {source} {dvd_size} {audio}"
                     potential_missing = ['edition', 'distributor']
                 elif meta['is_disc'] == 'HDDVD':
-                    name = f"{title} {alt_title} {year} {edition} {repack} {resolution} {source} {video_codec} {audio}"
+                    name = f"{title} {alt_title} {year} {edition} {repack} {source} {audio}"
                     potential_missing = ['edition', 'region', 'distributor']
             elif type == "REMUX" and source in ("BluRay", "HDDVD"): #BluRay/HDDVD Remux
-                name = f"{title} {alt_title} {year} {three_d} {edition} {repack} {resolution} {uhd} {source} REMUX {hdr} {video_codec} {audio}" 
+                name = f"{title} {alt_title} {year} {three_d} {edition} {repack} {uhd} BDRemux {resolution} {hdr}"
                 potential_missing = ['edition', 'description']
             elif type == "REMUX" and source in ("PAL DVD", "NTSC DVD", "DVD"): #DVD Remux
-                name = f"{title} {alt_title} {year} {edition} {repack} {source} REMUX  {audio}" 
+                name = f"{title} {alt_title} {year} {edition} {repack} DVDRemux"
                 potential_missing = ['edition', 'description']
             elif type == "ENCODE": #Encode
-                name = f"{title} {alt_title} {year} {edition} {repack} {resolution} {uhd} {source} {audio} {hdr} {video_encode}"  
+                name = f"{title} {alt_title} {year} {edition} {repack} BDRip {resolution} {hdr}"
                 potential_missing = ['edition', 'description']
             elif type == "WEBDL": #WEB-DL
-                name = f"{title} {alt_title} {year} {edition} {repack} {resolution} {uhd} {service} WEB-DL {audio} {hdr} {video_encode}"
+                name = f"{title} {alt_title} {year} {edition} {repack} {service} WEB-DL {resolution} {hdr}"
                 potential_missing = ['edition', 'service']
             elif type == "WEBRIP": #WEBRip
-                name = f"{title} {alt_title} {year} {edition} {repack} {resolution} {uhd} {service} WEBRip {audio} {hdr} {video_encode}"
+                name = f"{title} {alt_title} {year} {edition} {repack} {resolution} {service} WEBRip {audio} {hdr}"
                 potential_missing = ['edition', 'service']
             elif type == "HDTV": #HDTV
-                name = f"{title} {alt_title} {year} {edition} {repack} {resolution} {source} {audio} {video_encode}"
+                name = f"{title} {alt_title} {year} {edition} {repack} {resolution} HDTV {audio} {video_encode}"
                 potential_missing = []
         elif meta['category'] == "TV": #TV SPECIFIC
             if type == "DISC": #Disk
@@ -2305,25 +2305,25 @@ class Prep():
                     name = f"{title} {alt_title} {season}{episode}{three_d} {edition} {repack} {source} {dvd_size} {audio}"
                     potential_missing = ['edition', 'distributor']
                 elif meta['is_disc'] == 'HDDVD':
-                    name = f"{title} {alt_title} {year} {edition} {repack} {resolution} {source} {video_codec} {audio}"
+                    name = f"{title} {alt_title} {year} {edition} {repack} {source} {audio}"
                     potential_missing = ['edition', 'region', 'distributor']
             elif type == "REMUX" and source in ("BluRay", "HDDVD"): #BluRay Remux
-                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {part} {three_d} {edition} {repack} {resolution} {uhd} {source} REMUX {hdr} {video_codec} {audio}" #SOURCE
+                name = f"{title} {alt_title} {season}{episode} {episode_title} {year} {three_d} {edition} {repack} BDRemux {resolution} {hdr}" #SOURCE
                 potential_missing = ['edition', 'description']
             elif type == "REMUX" and source in ("PAL DVD", "NTSC DVD"): #DVD Remux
-                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {part} {edition} {repack} {source} REMUX {audio}" #SOURCE
+                name = f"{title} {alt_title} {season}{episode} {episode_title} {year} {edition} {repack} DVDRemux" #SOURCE
                 potential_missing = ['edition', 'description']
             elif type == "ENCODE": #Encode
-                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {part} {edition} {repack} {resolution} {uhd} {source} {audio} {hdr} {video_encode}" #SOURCE
+                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {edition} {repack} {resolution} BDRip {hdr} {video_encode}" #SOURCE
                 potential_missing = ['edition', 'description']
             elif type == "WEBDL": #WEB-DL
-                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {part} {edition} {repack} {resolution} {uhd} {service} WEB-DL {audio} {hdr} {video_encode}"
+                name = f"{title} {alt_title} {season}{episode} {episode_title} {year} {edition} {repack} {service} WEB-DL {resolution} {hdr}"
                 potential_missing = ['edition', 'service']
             elif type == "WEBRIP": #WEBRip
-                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {part} {edition} {repack} {resolution} {uhd} {service} WEBRip {audio} {hdr} {video_encode}"
+                name = f"{title} {alt_title} {season}{episode} {episode_title} {year} {edition} {repack} {service} WEBRip {resolution} {hdr}"
                 potential_missing = ['edition', 'service']
             elif type == "HDTV": #HDTV
-                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {part} {edition} {repack} {resolution} {source} {audio} {video_encode}"
+                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {edition} {repack} {resolution} HDTV {audio} {video_encode}"
                 potential_missing = []
 
 

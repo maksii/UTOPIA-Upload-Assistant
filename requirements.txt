@@ -19,3 +19,4 @@ pyoxipng
 rich
 Jinja2
 pyotp
+setuptools
