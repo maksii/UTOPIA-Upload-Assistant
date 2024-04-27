@@ -13,10 +13,7 @@ import ssl
 import shutil
 import time
 
-
 from src.console import console 
-
-
 
 class Clients():
     """
@@ -214,17 +211,6 @@ class Clients():
                     console.print(f"[green]Found a matching .torrent with hash: [bold yellow]{torrent.hash}")
                     return torrent.hash
         return None
-
-
-
-
-
-
-
-
-
-
-
 
     def rtorrent(self, path, torrent_path, torrent, meta, local_path, remote_path, client):
         rtorrent = xmlrpc.client.Server(client['rtorrent_url'], context=ssl._create_stdlib_context())

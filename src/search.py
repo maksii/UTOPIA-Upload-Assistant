@@ -1,5 +1,4 @@
 import platform
-import asyncio
 import os
 from src.console import console
 

@@ -2,10 +2,7 @@ import vapoursynth as vs
 core = vs.core
 from awsmfunc import ScreenGen, DynamicTonemap, FrameInfo, zresize
 import random
-import argparse
-from typing import Union, List
-from pathlib import Path
-import os, sys
+import os
 from functools import partial
 
 # Modified version of https://git.concertos.live/AHD/ahd_utils/src/branch/master/screengn.py

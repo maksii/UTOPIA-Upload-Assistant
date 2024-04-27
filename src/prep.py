@@ -2,9 +2,6 @@
 from src.args import Args
 from src.console import console
 from src.exceptions import *
-from src.trackers.PTP import PTP
-from src.trackers.BLU import BLU
-from src.trackers.HDB import HDB
 from src.trackers.COMMON import COMMON
 
 try:
@@ -15,8 +12,6 @@ try:
     import os
     from os.path import basename
     import re
-    import math
-    import sys
     import distutils.util
     import asyncio
     from guessit import guessit
@@ -190,80 +185,6 @@ class Prep():
 
         meta['bdinfo'] = bdinfo
         
-
-
-
-
-        # Reuse information from other trackers
-        if str(self.config['TRACKERS'].get('PTP', {}).get('useAPI')).lower() == "true":
-            ptp = PTP(config=self.config)
-            if meta.get('ptp', None) != None:
-                meta['ptp_manual'] = meta['ptp']
-                meta['imdb'], meta['ext_torrenthash'] = await ptp.get_imdb_from_torrent_id(meta['ptp'])
-            else:
-                if meta['is_disc'] in [None, ""]:
-                    ptp_search_term = os.path.basename(meta['filelist'][0])
-                    search_file_folder = 'file'
-                else:
-                    search_file_folder = 'folder'
-                    ptp_search_term = os.path.basename(meta['path'])
-                ptp_imdb, ptp_id, meta['ext_torrenthash'] = await ptp.get_ptp_id_imdb(ptp_search_term, search_file_folder)
-                if ptp_imdb != None:
-                    meta['imdb'] = ptp_imdb
-                if ptp_id != None:
-                    meta['ptp'] = ptp_id
-        
-        if str(self.config['TRACKERS'].get('HDB', {}).get('useAPI')).lower() == "true":
-            hdb = HDB(config=self.config)
-            if meta.get('ptp', None) == None or meta.get('hdb', None) != None:
-                hdb_imdb = hdb_tvdb = hdb_id = None
-                hdb_id = meta.get('hdb')
-                if hdb_id != None:
-                    meta['hdb_manual'] = hdb_id
-                    hdb_imdb, hdb_tvdb, meta['hdb_name'], meta['ext_torrenthash'] = await hdb.get_info_from_torrent_id(hdb_id)
-                else:
-                    if meta['is_disc'] in [None, ""]:
-                        hdb_imdb, hdb_tvdb, meta['hdb_name'], meta['ext_torrenthash'], hdb_id = await hdb.search_filename(meta['filelist'])
-                    else:
-                        # Somehow search for disc
-                        pass
-                if hdb_imdb != None:
-                    meta['imdb'] = str(hdb_imdb)
-                if hdb_tvdb != None:
-                    meta['tvdb_id'] = str(hdb_tvdb)
-                if hdb_id != None:
-                    meta['hdb'] = hdb_id
-        
-        if str(self.config['TRACKERS'].get('BLU', {}).get('useAPI')).lower() == "true":
-            blu = BLU(config=self.config)
-            if meta.get('blu', None) != None:
-                meta['blu_manual'] = meta['blu']
-                blu_tmdb, blu_imdb, blu_tvdb, blu_mal, blu_desc, blu_category, meta['ext_torrenthash'], blu_imagelist = await COMMON(self.config).unit3d_torrent_info("BLU", blu.torrent_url, meta['blu'])
-                if blu_tmdb not in [None, '0']:
-                    meta['tmdb_manual'] = blu_tmdb
-                if blu_imdb not in [None, '0']:
-                    meta['imdb'] = str(blu_imdb)
-                if blu_tvdb not in [None, '0']:
-                    meta['tvdb_id'] = blu_tvdb
-                if blu_mal not in [None, '0']:
-                    meta['mal'] = blu_mal
-                if blu_desc not in [None, '0', '']:
-                    meta['blu_desc'] = blu_desc
-                if blu_category.upper() in ['MOVIE', 'TV SHOW', 'FANRES']:
-                    if blu_category.upper() == 'TV SHOW':
-                        meta['category'] = 'TV'
-                    else:
-                        meta['category'] = blu_category.upper()
-                if meta.get('image_list', []) == []:
-                    meta['image_list'] = blu_imagelist
-            else:
-                # Seach automatically
-                pass
-
-
-
-
-
         # Take Screenshots
         if meta['is_disc'] == "BDMV":
             if meta.get('edit', False) == False:

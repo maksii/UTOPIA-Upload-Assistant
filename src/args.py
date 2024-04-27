@@ -3,7 +3,6 @@ import argparse
 import urllib.parse
 import os
 import datetime
-import traceback
 
 from src.console import console
 
@@ -15,9 +14,7 @@ class Args():
     def __init__(self, config):
         self.config = config
         pass
-    
 
-     
     def parse(self, args, meta):
         input = args
         parser = argparse.ArgumentParser()
@@ -190,18 +187,3 @@ class Args():
         else:
             id = id
         return category, id
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -3,36 +3,6 @@ from src.args import Args
 from src.clients import Clients
 from src.prep import Prep
 from src.trackers.COMMON import COMMON
-from src.trackers.HUNO import HUNO
-from src.trackers.BLU import BLU
-from src.trackers.BHD import BHD
-from src.trackers.AITHER import AITHER
-from src.trackers.STC import STC
-from src.trackers.R4E import R4E
-from src.trackers.THR import THR
-from src.trackers.STT import STT
-from src.trackers.HP import HP
-from src.trackers.PTP import PTP
-from src.trackers.SN import SN
-from src.trackers.ACM import ACM
-from src.trackers.HDB import HDB
-from src.trackers.LCD import LCD
-from src.trackers.TTG import TTG
-from src.trackers.LST import LST
-from src.trackers.FL import FL
-from src.trackers.LT import LT
-from src.trackers.NBL import NBL
-from src.trackers.ANT import ANT
-from src.trackers.PTER import PTER
-from src.trackers.MTV import MTV
-from src.trackers.JPTV import JPTV
-from src.trackers.TL import TL
-from src.trackers.TDC import TDC
-from src.trackers.HDT import HDT
-from src.trackers.RF import RF
-from src.trackers.OE import OE
-from src.trackers.BHDTV import BHDTV
-from src.trackers.RTF import RTF
 from src.trackers.UTOPIA import UTOPIA
 import json
 from pathlib import Path
@@ -40,8 +10,6 @@ import asyncio
 import os
 import sys
 import platform
-import multiprocessing
-import logging
 import shutil
 import glob
 import cli_ui
@@ -55,34 +23,23 @@ from rich.style import Style
 cli_ui.setup(color='always', title="L4G's Upload Assistant")
 import traceback
 
-base_dir = os.path.abspath(os.path.dirname(__file__))
+# Determine if the application is running as a frozen executable or as a script
+if getattr(sys, 'frozen', False):
+    base_dir = os.path.dirname(sys.executable)
+else:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
 
+config_path = os.path.join(base_dir, 'data', 'config.json')
+
+# Load the configuration file
 try:
-    from data.config import config
-except:
-    if not os.path.exists(os.path.abspath(f"{base_dir}/data/config.py")):
-        try:
-            if os.path.exists(os.path.abspath(f"{base_dir}/data/config.json")):
-                with open(f"{base_dir}/data/config.json", 'r', encoding='utf-8-sig') as f:
-                    json_config = json.load(f)
-                    f.close()
-                with open(f"{base_dir}/data/config.py", 'w') as f:
-                    f.write(f"config = {json.dumps(json_config, indent=4)}")
-                    f.close()
-                cli_ui.info(cli_ui.green, "Successfully updated config from .json to .py")    
-                cli_ui.info(cli_ui.green, "It is now safe for you to delete", cli_ui.yellow, "data/config.json", "if you wish")    
-                from data.config import config
-            else:
-                raise NotImplementedError
-        except:
-            cli_ui.info(cli_ui.red, "We have switched from .json to .py for config to have a much more lenient experience")
-            cli_ui.info(cli_ui.red, "Looks like the auto updater didnt work though")
-            cli_ui.info(cli_ui.red, "Updating is just 2 easy steps:")
-            cli_ui.info(cli_ui.red, "1: Rename", cli_ui.yellow, os.path.abspath(f"{base_dir}/data/config.json"), cli_ui.red, "to", cli_ui.green, os.path.abspath(f"{base_dir}/data/config.py") )
-            cli_ui.info(cli_ui.red, "2: Add", cli_ui.green, "config = ", cli_ui.red, "to the beginning of", cli_ui.green, os.path.abspath(f"{base_dir}/data/config.py"))
-            exit()
-    else:
-        console.print(traceback.print_exc())
+    with open(config_path, 'r', encoding="utf-8-sig") as f:
+        config = json.load(f)
+except FileNotFoundError:
+    print(f"Error: Configuration file not found at {config_path}")
+    sys.exit(1)
+
+
 client = Clients(config=config)
 parser = Args(config)
 
@@ -121,7 +78,7 @@ async def do_the_thing(base_dir):
                 console.print(Markdown(f"- {md_text.rstrip()}\n\n", style=Style(color='cyan')))
                 console.print("\n\n")
             else:
-                console.print(f"[red]Path: [bold red]{path}[/bold red] does not exist")
+                console.print(f"[red]1Path: [bold red]{path}[/bold red] does not exist")
                 
         elif os.path.exists(os.path.dirname(path)) and len(paths) != 1:
             queue = paths
@@ -143,7 +100,7 @@ async def do_the_thing(base_dir):
                     if os.path.exists(p1):
                         queue.append(p1)
                     else:
-                        console.print(f"[red]Path: [bold red]{p1}[/bold red] does not exist")
+                        console.print(f"[red]1Path: [bold red]{p1}[/bold red] does not exist")
             if len(queue) >= 1:
                 md_text = "\n - ".join(queue)
                 console.print("\n[bold green]Queuing these files:[/bold green]", end='')
@@ -247,12 +204,9 @@ async def do_the_thing(base_dir):
         #######  Upload to Trackers  #######
         ####################################
         common = COMMON(config=config)
-        api_trackers = ['BLU', 'AITHER', 'STC', 'R4E', 'STT', 'RF', 'ACM','LCD','LST','HUNO', 'SN', 'LT', 'NBL', 'ANT', 'JPTV', 'TDC', 'OE', 'BHDTV', 'RTF', 'UTOPIA']
+        api_trackers = ['UTOPIA']
         http_trackers = ['HDB', 'TTG', 'FL', 'PTER', 'HDT', 'MTV']
-        tracker_class_map = {
-            'BLU' : BLU, 'BHD': BHD, 'AITHER' : AITHER, 'STC' : STC, 'R4E' : R4E, 'THR' : THR, 'STT' : STT, 'HP' : HP, 'PTP' : PTP, 'RF' : RF, 'SN' : SN, 
-            'ACM' : ACM, 'HDB' : HDB, 'LCD': LCD, 'TTG' : TTG, 'LST' : LST, 'HUNO': HUNO, 'FL' : FL, 'LT' : LT, 'NBL' : NBL, 'ANT' : ANT, 'PTER': PTER, 'JPTV' : JPTV,
-            'TL' : TL, 'TDC' : TDC, 'HDT' : HDT, 'MTV': MTV, 'OE': OE, 'BHDTV': BHDTV, 'RTF':RTF, 'UTOPIA' : UTOPIA}
+        tracker_class_map = {'UTOPIA' : UTOPIA}
 
         for tracker in trackers:
             if meta['name'].endswith('DUPE?'):
@@ -321,108 +275,6 @@ async def do_the_thing(base_dir):
                     else:
                         console.print(f"[green]{meta['name']}")
                         console.print(f"[green]Files can be found at: [yellow]{url}[/yellow]")  
-
-            if tracker == "BHD":
-                bhd = BHD(config=config)
-                draft_int = await bhd.get_live(meta)
-                if draft_int == 0:
-                    draft = "Draft"
-                else:
-                    draft = "Live"
-                if meta['unattended']:
-                    upload_to_bhd = True
-                else:
-                    upload_to_bhd = cli_ui.ask_yes_no(f"Upload to BHD? ({draft}) {debug}", default=meta['unattended'])
-                if upload_to_bhd:
-                    console.print("Uploading to BHD")
-                    if check_banned_group("BHD", bhd.banned_groups, meta):
-                        continue
-                    dupes = await bhd.search_existing(meta)
-                    dupes = await common.filter_dupes(dupes, meta)
-                    meta = dupe_check(dupes, meta)
-                    if meta['upload'] == True:
-                        await bhd.upload(meta)
-                        await client.add_to_client(meta, "BHD")
-            
-            if tracker == "THR":
-                if meta['unattended']:
-                    upload_to_thr = True
-                else:
-                    upload_to_thr = cli_ui.ask_yes_no(f"Upload to THR? {debug}", default=meta['unattended'])
-                if upload_to_thr:
-                    console.print("Uploading to THR")
-                    #Unable to get IMDB id/Youtube Link
-                    if meta.get('imdb_id', '0') == '0':
-                        imdb_id = cli_ui.ask_string("Unable to find IMDB id, please enter e.g.(tt1234567)")
-                        meta['imdb_id'] = imdb_id.replace('tt', '').zfill(7)
-                    if meta.get('youtube', None) == None:
-                        youtube = cli_ui.ask_string("Unable to find youtube trailer, please link one e.g.(https://www.youtube.com/watch?v=dQw4w9WgXcQ)")
-                        meta['youtube'] = youtube
-                    thr = THR(config=config)
-                    try:
-                        with requests.Session() as session:
-                            console.print("[yellow]Logging in to THR")
-                            session = thr.login(session)
-                            console.print("[yellow]Searching for Dupes")
-                            dupes = thr.search_existing(session, meta.get('imdb_id'))
-                            dupes = await common.filter_dupes(dupes, meta)
-                            meta = dupe_check(dupes, meta)
-                            if meta['upload'] == True:
-                                await thr.upload(session, meta)
-                                await client.add_to_client(meta, "THR")
-                    except:
-                        console.print(traceback.print_exc())
-
-            if tracker == "PTP":
-                if meta['unattended']:
-                    upload_to_ptp = True
-                else:
-                    upload_to_ptp = cli_ui.ask_yes_no(f"Upload to {tracker}? {debug}", default=meta['unattended'])
-                if upload_to_ptp:
-                    console.print(f"Uploading to {tracker}")
-                    if meta.get('imdb_id', '0') == '0':
-                        imdb_id = cli_ui.ask_string("Unable to find IMDB id, please enter e.g.(tt1234567)")
-                        meta['imdb_id'] = imdb_id.replace('tt', '').zfill(7)
-                    ptp = PTP(config=config)
-                    if check_banned_group("PTP", ptp.banned_groups, meta):
-                        continue
-                    try:
-                        console.print("[yellow]Searching for Group ID")
-                        groupID = await ptp.get_group_by_imdb(meta['imdb_id'])
-                        if groupID == None:
-                            console.print("[yellow]No Existing Group found")
-                            if meta.get('youtube', None) == None or "youtube" not in str(meta.get('youtube', '')):
-                                youtube = cli_ui.ask_string("Unable to find youtube trailer, please link one e.g.(https://www.youtube.com/watch?v=dQw4w9WgXcQ)", default="")
-                                meta['youtube'] = youtube
-                            meta['upload'] = True
-                        else:
-                            console.print("[yellow]Searching for Existing Releases")
-                            dupes = await ptp.search_existing(groupID, meta)
-                            dupes = await common.filter_dupes(dupes, meta)
-                            meta = dupe_check(dupes, meta)
-                        if meta.get('imdb_info', {}) == {}:
-                            meta['imdb_info'] = await prep.get_imdb_info(meta['imdb_id'], meta)
-                        if meta['upload'] == True:
-                            ptpUrl, ptpData = await ptp.fill_upload_form(groupID, meta)
-                            await ptp.upload(meta, ptpUrl, ptpData)
-                            await asyncio.sleep(5)
-                            await client.add_to_client(meta, "PTP")
-                    except:
-                        console.print(traceback.print_exc())
-
-            if tracker == "TL":
-                tracker_class = tracker_class_map[tracker](config=config)
-                if meta['unattended']:
-                    upload_to_tracker = True
-                else:
-                    upload_to_tracker = cli_ui.ask_yes_no(f"Upload to {tracker_class.tracker}? {debug}", default=meta['unattended'])
-                if upload_to_tracker:
-                    console.print(f"Uploading to {tracker_class.tracker}")
-                    if check_banned_group(tracker_class.tracker, tracker_class.banned_groups, meta):
-                        continue
-                    await tracker_class.upload(meta)
-                    await client.add_to_client(meta, tracker_class.tracker)            
-
 
 def get_confirmation(meta):
     if meta['debug'] == True:
@@ -556,16 +408,24 @@ def get_missing(meta):
     console.print()
     return
 
-if __name__ == '__main__':
+def main():
     pyver = platform.python_version_tuple()
     if int(pyver[0]) != 3:
-        console.print("[bold red]Python2 Detected, please use python3")
+        console.print("[bold red]Python 2 Detected, please use Python 3")
         exit()
+    elif int(pyver[1]) <= 6:
+        console.print("[bold red]Python <= 3.6 Detected, please use Python >= 3.7")
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(do_the_thing(base_dir))
     else:
-        if int(pyver[1]) <= 6:
-            console.print("[bold red]Python <= 3.6 Detected, please use Python >=3.7")
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(do_the_thing(base_dir))
-        else:
-            asyncio.run(do_the_thing(base_dir))
-        
+        asyncio.run(do_the_thing(base_dir))
+
+import asyncio
+import multiprocessing
+import platform
+from multiprocessing import set_start_method, freeze_support
+if __name__ == '__main__':
+    freeze_support()
+    #set_start_method('spawn')
+    main()
+    
