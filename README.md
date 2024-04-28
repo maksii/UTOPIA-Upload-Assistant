@@ -14,6 +14,35 @@ This is a fork of L4G's Upload Assistant for the UTOPIA tracker. The main differ
 
 If you are looking for the latest supported version of the original L4G's Upload Assistant, please use [Audionut/Upload-Assistant](https://github.com/Audionut/Upload-Assistant).
 
+## **Setup:**
+   - **REQUIRES AT LEAST PYTHON 3.7 AND PIP3**
+   - Needs [mono](https://www.mono-project.com/) on linux systems for BDInfo
+   - Also needs [MediaInfo](https://mediaarea.net/en/MediaInfo/Download/Windows) and [ffmpeg](https://ffmpeg.org/download.html#build-windows) installed on your system
+      - On Windows systems, ffmpeg must be added to PATH (https://windowsloop.com/install-ffmpeg-windows-10/)
+      - On linux systems, get it from your favorite package manager
+   - Clone the repo to your system `git clone https://github.com/maksii/UTOPIA-Upload-Assistant.git`
+   - Copy and Rename `data/config.example.json` to `data/config.json`
+   - Edit `config.json` to use your information 
+      - tmdb_api (v3) key can be obtained from https://developers.themoviedb.org/3/getting-started/introduction
+      - image host api keys can be obtained from their respective sites
+   - Install necessary python modules `pip3 install --user -U -r requirements.txt`
+
+## UTOPIA config
+- [tmdb_api (v3)](https://developers.themoviedb.org/3/getting-started/introduction)
+- [imgbb_api](https://api.imgbb.com)
+- UTOPIA api key - можна отримати в своєму профілі на Утопії в налаштуваннях безпеки Мій профіль-налаштування-безпека-API token
+- announce_url - можете отримати коли cтворюєте новий реліз - https://utp.to/upload/1
+
+## **Updating:**
+  - To update first navigate into the Upload-Assistant directory: `cd UTOPIA-Upload-Assistant`
+  - Run a `git pull` to grab latest updates
+  - Run `python3 -m pip install --user -U -r requirements.txt` to ensure dependencies are up to date
+## **CLI Usage:**
+  
+  `python3 upload.py /downloads/path/to/content --args`
+  
+  Args are OPTIONAL, for a list of acceptable args, pass `--help`
+
 ## PyInstaller
 
 ### Building the Frozen Executable using PyInstaller
