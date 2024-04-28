@@ -1,0 +1,140 @@
+{
+    "MOVIE": {
+        "DISC": {
+            "BDMV": {
+                "template": "{title} {alt_title} {year} {three_d} {edition} {repack} {resolution} {region} {uhd} {source} {hdr} {video_codec} {audio}",
+                "potential_missing": [
+                    "edition",
+                    "region",
+                    "distributor"
+                ]
+            },
+            "DVD": {
+                "template": "{title} {alt_title} {year} {edition} {repack} {source} {dvd_size} {audio}",
+                "potential_missing": [
+                    "edition",
+                    "distributor"
+                ]
+            },
+            "HDDVD": {
+                "template": "{title} {alt_title} {year} {edition} {repack} {source} {audio}",
+                "potential_missing": [
+                    "edition",
+                    "region",
+                    "distributor"
+                ]
+            }
+        },
+        "REMUX": {
+            "BluRay": {
+                "template": "{title} {alt_title} {year} {three_d} {edition} {repack} {uhd} BDRemux {resolution} {hdr}",
+                "potential_missing": [
+                    "edition",
+                    "description"
+                ]
+            },
+            "DVD": {
+                "template": "{title} {alt_title} {year} {edition} {repack} DVDRemux",
+                "potential_missing": [
+                    "edition",
+                    "description"
+                ]
+            }
+        },
+        "ENCODE": {
+            "template": "{title} {alt_title} {year} {edition} {repack} BDRip {resolution} {hdr}",
+            "potential_missing": [
+                "edition",
+                "description"
+            ]
+        },
+        "WEBDL": {
+            "template": "{title} {alt_title} {year} {edition} {repack} {service} WEB-DL {resolution} {hdr}",
+            "potential_missing": [
+                "edition",
+                "service"
+            ]
+        },
+        "WEBRIP": {
+            "template": "{title} {alt_title} {year} {edition} {repack} {resolution} {service} WEBRip {audio} {hdr}",
+            "potential_missing": [
+                "edition",
+                "service"
+            ]
+        },
+        "HDTV": {
+            "template": "{title} {alt_title} {year} {edition} {repack} {resolution} HDTV {audio} {video_encode}",
+            "potential_missing": [
+            ]
+        }
+    },
+    "TV": {
+        "DISC": {
+            "BDMV": {
+                "template": "{title} {year} {alt_title} {season}{episode} {three_d} {edition} {repack} {resolution} {region} {uhd} {source} {hdr} {video_codec} {audio}",
+                "potential_missing": [
+                    "edition",
+                    "region",
+                    "distributor"
+                ]
+            },
+            "DVD": {
+                "template": "{title} {alt_title} {season}{episode}{three_d} {edition} {repack} {source} {dvd_size} {audio}",
+                "potential_missing": [
+                    "edition",
+                    "distributor"
+                ]
+            },
+            "HDDVD": {
+                "template": "{title} {alt_title} {year} {edition} {repack} {source} {audio}",
+                "potential_missing": [
+                    "edition",
+                    "region",
+                    "distributor"
+                ]
+            }
+        },
+        "REMUX": {
+            "BluRay": {
+                "template": "{title} {alt_title} {season}{episode} {episode_title} {year} {three_d} {edition} {repack} BDRemux {resolution} {hdr}",
+                "potential_missing": [
+                    "edition",
+                    "description"
+                ]
+            },
+            "DVD": {
+                "template": "{title} {alt_title} {season}{episode} {episode_title} {year} {edition} {repack} DVDRemux",
+                "potential_missing": [
+                    "edition",
+                    "description"
+                ]
+            }
+        },
+        "ENCODE": {
+            "template": "{title} {year} {alt_title} {season}{episode} {episode_title} {edition} {repack} {resolution} BDRip {hdr} {video_encode}",
+            "potential_missing": [
+                "edition",
+                "description"
+            ]
+        },
+        "WEBDL": {
+            "template": "{title} {alt_title} {season}{episode} {episode_title} {year} {edition} {repack} {service} WEB-DL {resolution} {hdr}",
+            "potential_missing": [
+                "edition",
+                "service"
+            ]
+        },
+        "WEBRIP": {
+            "template": "{title} {alt_title} {season}{episode} {episode_title} {year} {edition} {repack} {service} WEBRip {resolution} {hdr}",
+            "potential_missing": [
+                "edition",
+                "service"
+            ]
+        },
+        "HDTV": {
+            "template": "{title} {year} {alt_title} {season}{episode} {episode_title} {edition} {repack} {resolution} HDTV {audio} {video_encode}",
+            "potential_missing": [
+            ]
+        }
+    }
+}

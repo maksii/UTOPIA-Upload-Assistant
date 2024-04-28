@@ -2133,53 +2133,23 @@ class Prep():
                     image_list.append(image_dict)
         return image_list
 
-
-
-
-
-
     async def get_name(self, meta):
-        type = meta.get('type', "")
-        title = meta.get('title',"")
-        alt_title = meta.get('aka', "")
-        year = meta.get('year', "")
-        resolution = meta.get('resolution', "")
-        if resolution == "OTHER":
-            resolution = ""
-        audio = meta.get('audio', "")
-        service = meta.get('service', "")
-        season = meta.get('season', "")
-        episode = meta.get('episode', "")
-        part = meta.get('part', "")
-        repack = meta.get('repack', "")
-        three_d = meta.get('3D', "")
-        tag = meta.get('tag', "")
-        source = meta.get('source', "")
-        uhd = meta.get('uhd', "")
-        hdr = meta.get('hdr', "")
-        episode_title = meta.get('episode_title', '')
-        if meta.get('is_disc', "") == "BDMV": #Disk
-            video_codec = meta.get('video_codec', "")
-            region = meta.get('region', "")
-        elif meta.get('is_disc', "") == "DVD":
-            region = meta.get('region', "")
-            dvd_size = meta.get('dvd_size', "")
-        else:
-            video_codec = meta.get('video_codec', "")
-            video_encode = meta.get('video_encode', "")
-        edition = meta.get('edition', "")
+        # Simplified dictionary access with default values
+        # Refactored code as is. No idea why we need that, but would asume that there some issue with some props could be empty for some corner cases
+        # keys contains props, that should be checked, and if empty, added back to meta as empty string ""
+        keys = ['type', 'title', 'aka', 'year', 'resolution', 'audio', 'service',
+        'season', 'episode', 'part', 'repack', '3D', 'tag', 'source',
+        'uhd', 'hdr', 'episode_title', 'video_codec', 'video_encode', 'edition', 'is_disc', 'region', 'dvd_size', 'search_year']
+        for key in keys:
+            if key not in meta:
+                meta[key] = ""
 
-        if meta['category'] == "TV":
-            if meta['search_year'] != "":
-                year = meta['year']
-            else:
-                year = ""
-        if meta.get('no_season', False) == True:
-            season = ''
-        if meta.get('no_year', False) == True:
-            year = ''
-        if meta.get('no_aka', False) == True:
-            alt_title = ''
+        # Handling special cases
+        meta['resolution'] = "" if meta['resolution'] == "OTHER" else meta['resolution']
+        meta['season'] = "" if meta.get('no_season', False) else meta['season']
+        meta['year'] = "" if meta.get('no_year', False) else meta['year']
+        meta['aka'] = "" if meta.get('no_aka', False) else meta['aka']
+
         if meta['debug']:
             console.log("[cyan]get_name cat/type")
             console.log(f"CATEGORY: {meta['category']}")
@@ -2187,82 +2157,46 @@ class Prep():
             console.log("[cyan]get_name meta:")
             console.log(meta)
 
-        #YAY NAMING FUN
-        if meta['category'] == "MOVIE": #MOVIE SPECIFIC
-            if type == "DISC": #Disk
-                if meta['is_disc'] == 'BDMV':
-                    name = f"{title} {alt_title} {year} {three_d} {edition} {repack} {resolution} {region} {uhd} {source} {hdr} {video_codec} {audio}"
-                    potential_missing = ['edition', 'region', 'distributor']
-                elif meta['is_disc'] == 'DVD':
-                    name = f"{title} {alt_title} {year} {edition} {repack} {source} {dvd_size} {audio}"
-                    potential_missing = ['edition', 'distributor']
-                elif meta['is_disc'] == 'HDDVD':
-                    name = f"{title} {alt_title} {year} {edition} {repack} {source} {audio}"
-                    potential_missing = ['edition', 'region', 'distributor']
-            elif type == "REMUX" and source in ("BluRay", "HDDVD"): #BluRay/HDDVD Remux
-                name = f"{title} {alt_title} {year} {three_d} {edition} {repack} {uhd} BDRemux {resolution} {hdr}"
-                potential_missing = ['edition', 'description']
-            elif type == "REMUX" and source in ("PAL DVD", "NTSC DVD", "DVD"): #DVD Remux
-                name = f"{title} {alt_title} {year} {edition} {repack} DVDRemux"
-                potential_missing = ['edition', 'description']
-            elif type == "ENCODE": #Encode
-                name = f"{title} {alt_title} {year} {edition} {repack} BDRip {resolution} {hdr}"
-                potential_missing = ['edition', 'description']
-            elif type == "WEBDL": #WEB-DL
-                name = f"{title} {alt_title} {year} {edition} {repack} {service} WEB-DL {resolution} {hdr}"
-                potential_missing = ['edition', 'service']
-            elif type == "WEBRIP": #WEBRip
-                name = f"{title} {alt_title} {year} {edition} {repack} {resolution} {service} WEBRip {audio} {hdr}"
-                potential_missing = ['edition', 'service']
-            elif type == "HDTV": #HDTV
-                name = f"{title} {alt_title} {year} {edition} {repack} {resolution} HDTV {audio} {video_encode}"
-                potential_missing = []
-        elif meta['category'] == "TV": #TV SPECIFIC
-            if type == "DISC": #Disk
-                if meta['is_disc'] == 'BDMV':
-                    name = f"{title} {year} {alt_title} {season}{episode} {three_d} {edition} {repack} {resolution} {region} {uhd} {source} {hdr} {video_codec} {audio}"
-                    potential_missing = ['edition', 'region', 'distributor']
-                if meta['is_disc'] == 'DVD':
-                    name = f"{title} {alt_title} {season}{episode}{three_d} {edition} {repack} {source} {dvd_size} {audio}"
-                    potential_missing = ['edition', 'distributor']
-                elif meta['is_disc'] == 'HDDVD':
-                    name = f"{title} {alt_title} {year} {edition} {repack} {source} {audio}"
-                    potential_missing = ['edition', 'region', 'distributor']
-            elif type == "REMUX" and source in ("BluRay", "HDDVD"): #BluRay Remux
-                name = f"{title} {alt_title} {season}{episode} {episode_title} {year} {three_d} {edition} {repack} BDRemux {resolution} {hdr}" #SOURCE
-                potential_missing = ['edition', 'description']
-            elif type == "REMUX" and source in ("PAL DVD", "NTSC DVD"): #DVD Remux
-                name = f"{title} {alt_title} {season}{episode} {episode_title} {year} {edition} {repack} DVDRemux" #SOURCE
-                potential_missing = ['edition', 'description']
-            elif type == "ENCODE": #Encode
-                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {edition} {repack} {resolution} BDRip {hdr} {video_encode}" #SOURCE
-                potential_missing = ['edition', 'description']
-            elif type == "WEBDL": #WEB-DL
-                name = f"{title} {alt_title} {season}{episode} {episode_title} {year} {edition} {repack} {service} WEB-DL {resolution} {hdr}"
-                potential_missing = ['edition', 'service']
-            elif type == "WEBRIP": #WEBRip
-                name = f"{title} {alt_title} {season}{episode} {episode_title} {year} {edition} {repack} {service} WEBRip {resolution} {hdr}"
-                potential_missing = ['edition', 'service']
-            elif type == "HDTV": #HDTV
-                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {edition} {repack} {resolution} HDTV {audio} {video_encode}"
-                potential_missing = []
+        with open('data/naming.json', 'r') as file:
+            naming_config = json.load(file)
+            
+        # Get configuration based on category and type
+        category_config = naming_config.get(meta['category'], {})
+        type_config = category_config.get(meta['type'], {})
+        disc_type_config = type_config.get(meta['is_disc'], type_config) if isinstance(type_config, dict) else type_config
+        
+        # Extract template and potential_missing from the configuration
+        template = disc_type_config.get('template', '')
+        potential_missing = disc_type_config.get('potential_missing', [])
+        console.print(f"template [yellow]{template}")
+        console.print(f"potential_missing [yellow]{potential_missing}")
+        # Extract variables from meta for formatting
+        # Format the name using the appropriate template
+        format_vars = {key[1]: meta.get(key[1], '') for key in string.Formatter().parse(template) if key[1]}
+        name = template.format(**format_vars)
 
-
-        try:    
+        
+        try:
+            # Normalize whitespace in the name    
             name = ' '.join(name.split())
         except:
+            # Handle exceptions by notifying the user and exiting
             console.print("[bold red]Unable to generate name. Please re-run and correct any of the following args if needed.")
             console.print(f"--category [yellow]{meta['category']}")
             console.print(f"--type [yellow]{meta['type']}")
             console.print(f"--source [yellow]{meta['source']}")
-
             exit()
+        
+        # Append tag to the name     
         name_notag = name
-        name = name_notag + tag
+        name = name_notag + meta['tag']
+        # Clean the filename
         clean_name = self.clean_filename(name)
+        console.print(f"name_notag [yellow]{name_notag}")
+        console.print(f"name [yellow]{name}")
+        console.print(f"clean_name [yellow]{clean_name}")
+        console.print(f"potential_missing [yellow]{potential_missing}")
         return name_notag, name, clean_name, potential_missing
-
-
 
 
     async def get_season_episode(self, video, meta):
