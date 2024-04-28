@@ -10,7 +10,6 @@ import json
 
 from src.console import console
     
-    
 class DiscParse():
     def __init__(self):
         pass

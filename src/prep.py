@@ -2,12 +2,11 @@
 from src.args import Args
 from src.console import console
 from src.exceptions import *
-from src.trackers.PTP import PTP
-from src.trackers.BLU import BLU
-from src.trackers.HDB import HDB
 from src.trackers.COMMON import COMMON
 
 try:
+    import string
+    import sys
     import traceback
     import nest_asyncio
     from src.discparse import DiscParse
@@ -15,9 +14,7 @@ try:
     import os
     from os.path import basename
     import re
-    import math
-    import sys
-    import distutils.util
+    from str2bool import str2bool
     import asyncio
     from guessit import guessit
     import ntpath
@@ -97,7 +94,7 @@ class Prep():
             meta['filelist'] = []
             try:
                 guess_name = bdinfo['title'].replace('-',' ')
-                filename = guessit(re.sub("[^0-9a-zA-Z\[\]]+", " ", guess_name), {"excludes" : ["country", "language"]})['title']
+                filename = guessit(re.sub(r"[^0-9a-zA-Z\[\]]+", " ", guess_name), {"excludes" : ["country", "language"]})['title']
                 untouched_filename = bdinfo['title']
                 try:
                     meta['search_year'] = guessit(bdinfo['title'])['year']
@@ -105,7 +102,7 @@ class Prep():
                     meta['search_year'] = ""
             except Exception:
                 guess_name = bdinfo['label'].replace('-',' ')
-                filename = guessit(re.sub("[^0-9a-zA-Z\[\]]+", " ", guess_name), {"excludes" : ["country", "language"]})['title']
+                filename = guessit(re.sub(r"[^0-9a-zA-Z\[\]]+", " ", guess_name), {"excludes" : ["country", "language"]})['title']
                 untouched_filename = bdinfo['label']
                 try:
                     meta['search_year'] = guessit(bdinfo['label'])['year']
@@ -164,7 +161,7 @@ class Prep():
             videopath, meta['filelist'] = self.get_video(videoloc, meta.get('mode', 'discord')) 
             video, meta['scene'], meta['imdb'] = self.is_scene(videopath, meta.get('imdb', None))
             guess_name = ntpath.basename(video).replace('-',' ')
-            filename = guessit(re.sub("[^0-9a-zA-Z\[\]]+", " ", guess_name), {"excludes" : ["country", "language"]}).get("title", guessit(re.sub("[^0-9a-zA-Z]+", " ", guess_name), {"excludes" : ["country", "language"]})["title"])
+            filename = guessit(re.sub(r"[^0-9a-zA-Z\[\]]+", " ", guess_name), {"excludes" : ["country", "language"]}).get("title", guessit(re.sub(r"[^0-9a-zA-Z]+", " ", guess_name), {"excludes" : ["country", "language"]})["title"])
             untouched_filename = os.path.basename(video)
             try:
                 meta['search_year'] = guessit(video)['year']
@@ -190,80 +187,6 @@ class Prep():
 
         meta['bdinfo'] = bdinfo
         
-
-
-
-
-        # Reuse information from other trackers
-        if str(self.config['TRACKERS'].get('PTP', {}).get('useAPI')).lower() == "true":
-            ptp = PTP(config=self.config)
-            if meta.get('ptp', None) != None:
-                meta['ptp_manual'] = meta['ptp']
-                meta['imdb'], meta['ext_torrenthash'] = await ptp.get_imdb_from_torrent_id(meta['ptp'])
-            else:
-                if meta['is_disc'] in [None, ""]:
-                    ptp_search_term = os.path.basename(meta['filelist'][0])
-                    search_file_folder = 'file'
-                else:
-                    search_file_folder = 'folder'
-                    ptp_search_term = os.path.basename(meta['path'])
-                ptp_imdb, ptp_id, meta['ext_torrenthash'] = await ptp.get_ptp_id_imdb(ptp_search_term, search_file_folder)
-                if ptp_imdb != None:
-                    meta['imdb'] = ptp_imdb
-                if ptp_id != None:
-                    meta['ptp'] = ptp_id
-        
-        if str(self.config['TRACKERS'].get('HDB', {}).get('useAPI')).lower() == "true":
-            hdb = HDB(config=self.config)
-            if meta.get('ptp', None) == None or meta.get('hdb', None) != None:
-                hdb_imdb = hdb_tvdb = hdb_id = None
-                hdb_id = meta.get('hdb')
-                if hdb_id != None:
-                    meta['hdb_manual'] = hdb_id
-                    hdb_imdb, hdb_tvdb, meta['hdb_name'], meta['ext_torrenthash'] = await hdb.get_info_from_torrent_id(hdb_id)
-                else:
-                    if meta['is_disc'] in [None, ""]:
-                        hdb_imdb, hdb_tvdb, meta['hdb_name'], meta['ext_torrenthash'], hdb_id = await hdb.search_filename(meta['filelist'])
-                    else:
-                        # Somehow search for disc
-                        pass
-                if hdb_imdb != None:
-                    meta['imdb'] = str(hdb_imdb)
-                if hdb_tvdb != None:
-                    meta['tvdb_id'] = str(hdb_tvdb)
-                if hdb_id != None:
-                    meta['hdb'] = hdb_id
-        
-        if str(self.config['TRACKERS'].get('BLU', {}).get('useAPI')).lower() == "true":
-            blu = BLU(config=self.config)
-            if meta.get('blu', None) != None:
-                meta['blu_manual'] = meta['blu']
-                blu_tmdb, blu_imdb, blu_tvdb, blu_mal, blu_desc, blu_category, meta['ext_torrenthash'], blu_imagelist = await COMMON(self.config).unit3d_torrent_info("BLU", blu.torrent_url, meta['blu'])
-                if blu_tmdb not in [None, '0']:
-                    meta['tmdb_manual'] = blu_tmdb
-                if blu_imdb not in [None, '0']:
-                    meta['imdb'] = str(blu_imdb)
-                if blu_tvdb not in [None, '0']:
-                    meta['tvdb_id'] = blu_tvdb
-                if blu_mal not in [None, '0']:
-                    meta['mal'] = blu_mal
-                if blu_desc not in [None, '0', '']:
-                    meta['blu_desc'] = blu_desc
-                if blu_category.upper() in ['MOVIE', 'TV SHOW', 'FANRES']:
-                    if blu_category.upper() == 'TV SHOW':
-                        meta['category'] = 'TV'
-                    else:
-                        meta['category'] = blu_category.upper()
-                if meta.get('image_list', []) == []:
-                    meta['image_list'] = blu_imagelist
-            else:
-                # Seach automatically
-                pass
-
-
-
-
-
         # Take Screenshots
         if meta['is_disc'] == "BDMV":
             if meta.get('edit', False) == False:
@@ -359,8 +282,8 @@ class Prep():
         
         meta['edition'], meta['repack'] = self.get_edition(meta['path'], bdinfo, meta['filelist'], meta.get('manual_edition'))
         if "REPACK" in meta.get('edition', ""):
-            meta['repack'] = re.search("REPACK[\d]?", meta['edition'])[0]
-            meta['edition'] = re.sub("REPACK[\d]?", "", meta['edition']).strip().replace('  ', ' ')
+            meta['repack'] = re.search(r"REPACK[\d]?", meta['edition'])[0]
+            meta['edition'] = re.sub(r"REPACK[\d]?", "", meta['edition']).strip().replace('  ', ' ')
         
         
         
@@ -997,10 +920,10 @@ class Prep():
                     pyver = platform.python_version_tuple()
                     if int(pyver[0]) == 3 and int(pyver[1]) >= 7:
                         import oxipng 
-                    if os.path.getsize(image) >= 31000000:
+                    if os.path.getsize(image) >= 16000000:
                         oxipng.optimize(image, level=6)
                     else:
-                        oxipng.optimize(image, level=1)
+                        oxipng.optimize(image, level=3)
                 except:
                     pass
         return
@@ -1369,7 +1292,7 @@ class Prep():
             result = {'title' : {}}
             difference = 0
             for anime in media:
-                search_name = re.sub("[^0-9a-zA-Z\[\]]+", "", tmdb_name.lower().replace(' ', ''))
+                search_name = re.sub(r"[^0-9a-zA-Z\[\]]+", "", tmdb_name.lower().replace(' ', ''))
                 for title in anime['title'].values():
                     if title != None:
                         title = re.sub(u'[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uff9f\u4e00-\u9faf\u3400-\u4dbf]+ (?=[A-Za-z ]+–)', "", title.lower().replace(' ', ''), re.U)
@@ -1906,7 +1829,7 @@ class Prep():
             repack = "RERIP"
         # if "HYBRID" in video.upper() and "HYBRID" not in title.upper():
         #     edition = "Hybrid " + edition
-        edition = re.sub("(REPACK\d?)?(RERIP)?(PROPER)?", "", edition, flags=re.IGNORECASE).strip()
+        edition = re.sub(r"(REPACK\d?)?(RERIP)?(PROPER)?", "", edition, flags=re.IGNORECASE).strip()
         bad = ['internal', 'limited', 'retail']
 
         if edition.lower() in bad:
@@ -1983,7 +1906,7 @@ class Prep():
         if torrent_creation == 'torrenttools':
             args = ['torrenttools', 'create', '-a', 'https://fake.tracker', '--private', 'on', '--piece-size', str(2**piece_size), '--created-by', "L4G's Upload Assistant", '--no-cross-seed','-o', f"{meta['base_dir']}/tmp/{meta['uuid']}/{output_filename}.torrent"]
             if not meta['is_disc']:
-                args.extend(['--include', '^.*\.(mkv|mp4|ts)$'])
+                args.extend(['--include', r'^.*\.(mkv|mp4|ts)$'])
             args.append(path)
             err = subprocess.call(args)
             if err != 0:
@@ -2010,7 +1933,7 @@ class Prep():
         cli_ui.info_progress("Hashing...", pieces_done, pieces_total)
 
     def create_random_torrents(self, base_dir, uuid, num, path):
-        manual_name = re.sub("[^0-9a-zA-Z\[\]\'\-]+", ".", os.path.basename(path))
+        manual_name = re.sub(r"[^0-9a-zA-Z\[\]\'\-]+", ".", os.path.basename(path))
         base_torrent = Torrent.read(f"{base_dir}/tmp/{uuid}/BASE.torrent")
         for i in range(1, int(num) + 1):
             new_torrent = base_torrent
@@ -2212,136 +2135,71 @@ class Prep():
                     image_list.append(image_dict)
         return image_list
 
-
-
-
-
-
     async def get_name(self, meta):
-        type = meta.get('type', "")
-        title = meta.get('title',"")
-        alt_title = meta.get('aka', "")
-        year = meta.get('year', "")
-        resolution = meta.get('resolution', "")
-        if resolution == "OTHER":
-            resolution = ""
-        audio = meta.get('audio', "")
-        service = meta.get('service', "")
-        season = meta.get('season', "")
-        episode = meta.get('episode', "")
-        part = meta.get('part', "")
-        repack = meta.get('repack', "")
-        three_d = meta.get('3D', "")
-        tag = meta.get('tag', "")
-        source = meta.get('source', "")
-        uhd = meta.get('uhd', "")
-        hdr = meta.get('hdr', "")
-        episode_title = meta.get('episode_title', '')
-        if meta.get('is_disc', "") == "BDMV": #Disk
-            video_codec = meta.get('video_codec', "")
-            region = meta.get('region', "")
-        elif meta.get('is_disc', "") == "DVD":
-            region = meta.get('region', "")
-            dvd_size = meta.get('dvd_size', "")
-        else:
-            video_codec = meta.get('video_codec', "")
-            video_encode = meta.get('video_encode', "")
-        edition = meta.get('edition', "")
+        # Simplified dictionary access with default values
+        # Refactored code as is. No idea why we need that, but would asume that there some issue with some props could be empty for some corner cases
+        # keys contains props, that should be checked, and if empty, added back to meta as empty string ""
+        keys = ['type', 'title', 'aka', 'year', 'resolution', 'audio', 'service',
+        'season', 'episode', 'part', 'repack', '3D', 'tag', 'source',
+        'uhd', 'hdr', 'episode_title', 'video_codec', 'video_encode', 'edition', 'is_disc', 'region', 'dvd_size', 'search_year']
+        for key in keys:
+            if key not in meta:
+                meta[key] = ""
 
-        if meta['category'] == "TV":
-            if meta['search_year'] != "":
-                year = meta['year']
-            else:
-                year = ""
-        if meta.get('no_season', False) == True:
-            season = ''
-        if meta.get('no_year', False) == True:
-            year = ''
-        if meta.get('no_aka', False) == True:
-            alt_title = ''
+        # Handling special cases
+        meta['resolution'] = "" if meta['resolution'] == "OTHER" else meta['resolution']
+        meta['season'] = "" if meta.get('no_season', False) else meta['season']
+        meta['year'] = "" if meta.get('no_year', False) else meta['year']
+        meta['aka'] = "" if meta.get('no_aka', False) else meta['aka']
+
         if meta['debug']:
             console.log("[cyan]get_name cat/type")
             console.log(f"CATEGORY: {meta['category']}")
             console.log(f"TYPE: {meta['type']}")
             console.log("[cyan]get_name meta:")
             console.log(meta)
+            
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-        #YAY NAMING FUN
-        if meta['category'] == "MOVIE": #MOVIE SPECIFIC
-            if type == "DISC": #Disk
-                if meta['is_disc'] == 'BDMV':
-                    name = f"{title} {alt_title} {year} {three_d} {edition} {repack} {resolution} {region} {uhd} {source} {hdr} {video_codec} {audio}"
-                    potential_missing = ['edition', 'region', 'distributor']
-                elif meta['is_disc'] == 'DVD': 
-                    name = f"{title} {alt_title} {year} {edition} {repack} {source} {dvd_size} {audio}"
-                    potential_missing = ['edition', 'distributor']
-                elif meta['is_disc'] == 'HDDVD':
-                    name = f"{title} {alt_title} {year} {edition} {repack} {resolution} {source} {video_codec} {audio}"
-                    potential_missing = ['edition', 'region', 'distributor']
-            elif type == "REMUX" and source in ("BluRay", "HDDVD"): #BluRay/HDDVD Remux
-                name = f"{title} {alt_title} {year} {three_d} {edition} {repack} {resolution} {uhd} {source} REMUX {hdr} {video_codec} {audio}" 
-                potential_missing = ['edition', 'description']
-            elif type == "REMUX" and source in ("PAL DVD", "NTSC DVD", "DVD"): #DVD Remux
-                name = f"{title} {alt_title} {year} {edition} {repack} {source} REMUX  {audio}" 
-                potential_missing = ['edition', 'description']
-            elif type == "ENCODE": #Encode
-                name = f"{title} {alt_title} {year} {edition} {repack} {resolution} {uhd} {source} {audio} {hdr} {video_encode}"  
-                potential_missing = ['edition', 'description']
-            elif type == "WEBDL": #WEB-DL
-                name = f"{title} {alt_title} {year} {edition} {repack} {resolution} {uhd} {service} WEB-DL {audio} {hdr} {video_encode}"
-                potential_missing = ['edition', 'service']
-            elif type == "WEBRIP": #WEBRip
-                name = f"{title} {alt_title} {year} {edition} {repack} {resolution} {uhd} {service} WEBRip {audio} {hdr} {video_encode}"
-                potential_missing = ['edition', 'service']
-            elif type == "HDTV": #HDTV
-                name = f"{title} {alt_title} {year} {edition} {repack} {resolution} {source} {audio} {video_encode}"
-                potential_missing = []
-        elif meta['category'] == "TV": #TV SPECIFIC
-            if type == "DISC": #Disk
-                if meta['is_disc'] == 'BDMV':
-                    name = f"{title} {year} {alt_title} {season}{episode} {three_d} {edition} {repack} {resolution} {region} {uhd} {source} {hdr} {video_codec} {audio}"
-                    potential_missing = ['edition', 'region', 'distributor']
-                if meta['is_disc'] == 'DVD':
-                    name = f"{title} {alt_title} {season}{episode}{three_d} {edition} {repack} {source} {dvd_size} {audio}"
-                    potential_missing = ['edition', 'distributor']
-                elif meta['is_disc'] == 'HDDVD':
-                    name = f"{title} {alt_title} {year} {edition} {repack} {resolution} {source} {video_codec} {audio}"
-                    potential_missing = ['edition', 'region', 'distributor']
-            elif type == "REMUX" and source in ("BluRay", "HDDVD"): #BluRay Remux
-                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {part} {three_d} {edition} {repack} {resolution} {uhd} {source} REMUX {hdr} {video_codec} {audio}" #SOURCE
-                potential_missing = ['edition', 'description']
-            elif type == "REMUX" and source in ("PAL DVD", "NTSC DVD"): #DVD Remux
-                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {part} {edition} {repack} {source} REMUX {audio}" #SOURCE
-                potential_missing = ['edition', 'description']
-            elif type == "ENCODE": #Encode
-                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {part} {edition} {repack} {resolution} {uhd} {source} {audio} {hdr} {video_encode}" #SOURCE
-                potential_missing = ['edition', 'description']
-            elif type == "WEBDL": #WEB-DL
-                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {part} {edition} {repack} {resolution} {uhd} {service} WEB-DL {audio} {hdr} {video_encode}"
-                potential_missing = ['edition', 'service']
-            elif type == "WEBRIP": #WEBRip
-                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {part} {edition} {repack} {resolution} {uhd} {service} WEBRip {audio} {hdr} {video_encode}"
-                potential_missing = ['edition', 'service']
-            elif type == "HDTV": #HDTV
-                name = f"{title} {year} {alt_title} {season}{episode} {episode_title} {part} {edition} {repack} {resolution} {source} {audio} {video_encode}"
-                potential_missing = []
+        config_path = os.path.join(base_dir, 'data', 'naming.json')
+        
+        with open(config_path, 'r', encoding="utf-8-sig") as file:
+            naming_config = json.load(file)
+            
+        # Get configuration based on category and type
+        category_config = naming_config.get(meta['category'], {})
+        type_config = category_config.get(meta['type'], {})
+        disc_type_config = type_config.get(meta['is_disc'], type_config) if isinstance(type_config, dict) else type_config
+        
+        # Extract template and potential_missing from the configuration
+        template = disc_type_config.get('template', '')
+        potential_missing = disc_type_config.get('potential_missing', [])
+        # Extract variables from meta for formatting
+        # Format the name using the appropriate template
+        format_vars = {key[1]: meta.get(key[1], '') for key in string.Formatter().parse(template) if key[1]}
+        name = template.format(**format_vars)
 
-
-        try:    
+        
+        try:
+            # Normalize whitespace in the name    
             name = ' '.join(name.split())
         except:
+            # Handle exceptions by notifying the user and exiting
             console.print("[bold red]Unable to generate name. Please re-run and correct any of the following args if needed.")
             console.print(f"--category [yellow]{meta['category']}")
             console.print(f"--type [yellow]{meta['type']}")
             console.print(f"--source [yellow]{meta['source']}")
-
             exit()
+        
+        # Append tag to the name     
         name_notag = name
-        name = name_notag + tag
+        name = name_notag + meta['tag']
+        # Clean the filename
         clean_name = self.clean_filename(name)
         return name_notag, name, clean_name, potential_missing
-
-
 
 
     async def get_season_episode(self, video, meta):
@@ -2491,8 +2349,8 @@ class Prep():
                                     for lang, names in values.items():
                                         if lang == "jp":
                                             for name in names:
-                                                romaji_check = re.sub("[^0-9a-zA-Z\[\]]+", "", romaji.lower().replace(' ', ''))
-                                                name_check = re.sub("[^0-9a-zA-Z\[\]]+", "", name.lower().replace(' ', ''))
+                                                romaji_check = re.sub(r"[^0-9a-zA-Z\[\]]+", "", romaji.lower().replace(' ', ''))
+                                                name_check = re.sub(r"[^0-9a-zA-Z\[\]]+", "", name.lower().replace(' ', ''))
                                                 diff = SequenceMatcher(None, romaji_check, name_check).ratio()
                                                 if romaji_check in name_check:
                                                     if diff >= difference:
@@ -2505,8 +2363,8 @@ class Prep():
                                                         difference = diff
                                         if lang == "us":
                                             for name in names:
-                                                eng_check = re.sub("[^0-9a-zA-Z\[\]]+", "", eng_title.lower().replace(' ', ''))
-                                                name_check = re.sub("[^0-9a-zA-Z\[\]]+", "", name.lower().replace(' ', ''))
+                                                eng_check = re.sub(r"[^0-9a-zA-Z\[\]]+", "", eng_title.lower().replace(' ', ''))
+                                                name_check = re.sub(r"[^0-9a-zA-Z\[\]]+", "", name.lower().replace(' ', ''))
                                                 diff = SequenceMatcher(None, eng_check, name_check).ratio()
                                                 if eng_check in name_check:
                                                     if diff >= difference:
@@ -2576,7 +2434,7 @@ class Prep():
     def get_service(self, video, tag, audio, guess_title):
         service = guessit(video).get('streaming_service', "")
         services = {
-            '9NOW': '9NOW', '9Now': '9NOW', 'AE': 'AE', 'A&E': 'AE', 'AJAZ': 'AJAZ', 'Al Jazeera English': 'AJAZ', 
+            '9NOW': '9NOW', '9Now': '9NOW','Animation Digital Network': 'ADN', 'ADN': 'ADN', 'AE': 'AE', 'A&E': 'AE', 'AJAZ': 'AJAZ', 'Al Jazeera English': 'AJAZ', 
             'ALL4': 'ALL4', 'Channel 4': 'ALL4', 'AMBC': 'AMBC', 'ABC': 'AMBC', 'AMC': 'AMC', 'AMZN': 'AMZN', 
             'Amazon Prime': 'AMZN', 'ANLB': 'ANLB', 'AnimeLab': 'ANLB', 'ANPL': 'ANPL', 'Animal Planet': 'ANPL', 
             'AOL': 'AOL', 'ARD': 'ARD', 'AS': 'AS', 'Adult Swim': 'AS', 'ATK': 'ATK', "America's Test Kitchen": 'ATK', 
@@ -2623,7 +2481,7 @@ class Prep():
             }
         
         
-        video_name = re.sub("[.()]", " ", video.replace(tag, '').replace(guess_title, ''))
+        video_name = re.sub(r"[.()]", " ", video.replace(tag, '').replace(guess_title, ''))
         if "DTS-HD MA" in audio:
             video_name = video_name.replace("DTS-HD.MA.", "").replace("DTS-HD MA ", "")
         for key, value in services.items():
@@ -2679,7 +2537,7 @@ class Prep():
             
     
     def clean_filename(self, name):
-        invalid = '<>:"/\|?*'
+        invalid = r'<>:"/\|?*'
         for char in invalid:
             name = name.replace(char, '-')
         return name
@@ -2772,7 +2630,7 @@ class Prep():
                         else:
                             pass
                     elif key == 'personalrelease':
-                        meta[key] = bool(distutils.util.strtobool(str(value.get(key, 'False'))))
+                        meta[key] = bool(str2bool(str(value.get(key, 'False'))))
                     elif key == 'template':
                         meta['desc_template'] = value.get(key)
                     else:
@@ -2827,7 +2685,7 @@ class Prep():
                 generic.write(f"\nThumbnail Image:\n")
                 for each in meta['image_list']:
                     generic.write(f"{each['img_url']}\n")
-        title = re.sub("[^0-9a-zA-Z\[\]]+", "", meta['title'])
+        title = re.sub(r"[^0-9a-zA-Z\[\]]+", "", meta['title'])
         archive = f"{meta['base_dir']}/tmp/{meta['uuid']}/{title}"
         torrent_files = glob.glob1(f"{meta['base_dir']}/tmp/{meta['uuid']}","*.torrent")
         if isinstance(torrent_files, list) and len(torrent_files) > 1:
@@ -2837,7 +2695,7 @@ class Prep():
         try:
             if os.path.exists(f"{meta['base_dir']}/tmp/{meta['uuid']}/BASE.torrent"):
                 base_torrent = Torrent.read(f"{meta['base_dir']}/tmp/{meta['uuid']}/BASE.torrent")
-                manual_name = re.sub("[^0-9a-zA-Z\[\]\'\-]+", ".", os.path.basename(meta['path']))
+                manual_name = re.sub(r"[^0-9a-zA-Z\[\]\'\-]+", ".", os.path.basename(meta['path']))
                 Torrent.copy(base_torrent).write(f"{meta['base_dir']}/tmp/{meta['uuid']}/{manual_name}.torrent", overwrite=True)
                 # shutil.copy(os.path.abspath(f"{meta['base_dir']}/tmp/{meta['uuid']}/BASE.torrent"), os.path.abspath(f"{meta['base_dir']}/tmp/{meta['uuid']}/{meta['name'].replace(' ', '.')}.torrent").replace(' ', '.'))
             filebrowser = self.config['TRACKERS'].get('MANUAL', {}).get('filebrowser', None)

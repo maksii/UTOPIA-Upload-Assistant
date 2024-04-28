@@ -1,0 +1,58 @@
+{
+    "DEFAULT": {
+        "tmdb_api": "tmdb api key",
+        "imgbb_api": "imgbb api key",
+        "ptpimg_api": "ptpimg api key",
+        "lensdump_api": "lensdump api key",
+        "img_host_1": "imgbb",
+        "img_host_2": "imgbox",
+        "img_host_3": "ptpimg",
+        "img_host_4": "pixhost",
+        "img_host_5": "lensdump",
+        "screens": "6",
+        "optimize_images": "True",
+        "default_torrent_client": "utopia",
+        "sfx_on_prompt": "True"
+    },
+    "TRACKERS": {
+        "default_trackers": "UTOPIA",
+        "UTOPIA": {
+            "useAPI": "True",
+            "api_key": "utopia api key",
+            "announce_url": "https://utp.to/announce/1"
+        }
+    },
+    "TORRENT_CLIENTS": {
+        "Client1": {
+            "torrent_client": "qbit",
+            "qbit_url": "http://127.0.0.1",
+            "qbit_port": "8080",
+            "qbit_user": "username",
+            "qbit_pass": "password"
+        },
+        "qbit_sample": {
+            "torrent_client": "qbit",
+            "enable_search": "True",
+            "qbit_url": "http://127.0.0.1",
+            "qbit_port": "8080",
+            "qbit_user": "username",
+            "qbit_pass": "password"
+        },
+        "utopia": {
+            "torrent_client": "rtorrent",
+            "rtorrent_url": "https://user:password@server.host.tld:443/username/rutorrent/plugins/httprpc/action.php",
+            "torrent_storage_dir": "C:\\Upload\\torrents"
+        },
+        "deluge_sample": {
+            "torrent_client": "deluge",
+            "deluge_url": "localhost",
+            "deluge_port": "8080",
+            "deluge_user": "username",
+            "deluge_pass": "password"
+        },
+        "watch_sample": {
+            "torrent_client": "watch",
+            "watch_folder": "/Path/To/Watch/Folder"
+        }
+    }
+}

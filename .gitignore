@@ -9,3 +9,8 @@ data/cookies/*.pickle
 __pycache__/
 tmp/*
 .wdm/
+
+# PyInstaller
+build/
+dist/
+*.pyc

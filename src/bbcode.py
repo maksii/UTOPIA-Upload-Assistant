@@ -225,21 +225,6 @@ class BBCODE:
             return "", imagelist
         return desc, imagelist
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     def convert_pre_to_code(self, desc):
         desc = desc.replace('[pre]', '[code]')
         desc = desc.replace('[/pre]', '[/code]')
