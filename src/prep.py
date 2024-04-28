@@ -5,6 +5,8 @@ from src.exceptions import *
 from src.trackers.COMMON import COMMON
 
 try:
+    import string
+    import sys
     import traceback
     import nest_asyncio
     from src.discparse import DiscParse
@@ -1904,7 +1906,7 @@ class Prep():
         if torrent_creation == 'torrenttools':
             args = ['torrenttools', 'create', '-a', 'https://fake.tracker', '--private', 'on', '--piece-size', str(2**piece_size), '--created-by', "L4G's Upload Assistant", '--no-cross-seed','-o', f"{meta['base_dir']}/tmp/{meta['uuid']}/{output_filename}.torrent"]
             if not meta['is_disc']:
-                args.extend(['--include', '^.*\.(mkv|mp4|ts)$'])
+                args.extend(['--include', r'^.*\.(mkv|mp4|ts)$'])
             args.append(path)
             err = subprocess.call(args)
             if err != 0:
@@ -2156,8 +2158,15 @@ class Prep():
             console.log(f"TYPE: {meta['type']}")
             console.log("[cyan]get_name meta:")
             console.log(meta)
+            
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-        with open('data/naming.json', 'r') as file:
+        config_path = os.path.join(base_dir, 'data', 'naming.json')
+        
+        with open(config_path, 'r', encoding="utf-8-sig") as file:
             naming_config = json.load(file)
             
         # Get configuration based on category and type
@@ -2168,8 +2177,6 @@ class Prep():
         # Extract template and potential_missing from the configuration
         template = disc_type_config.get('template', '')
         potential_missing = disc_type_config.get('potential_missing', [])
-        console.print(f"template [yellow]{template}")
-        console.print(f"potential_missing [yellow]{potential_missing}")
         # Extract variables from meta for formatting
         # Format the name using the appropriate template
         format_vars = {key[1]: meta.get(key[1], '') for key in string.Formatter().parse(template) if key[1]}
@@ -2192,10 +2199,6 @@ class Prep():
         name = name_notag + meta['tag']
         # Clean the filename
         clean_name = self.clean_filename(name)
-        console.print(f"name_notag [yellow]{name_notag}")
-        console.print(f"name [yellow]{name}")
-        console.print(f"clean_name [yellow]{clean_name}")
-        console.print(f"potential_missing [yellow]{potential_missing}")
         return name_notag, name, clean_name, potential_missing
 
 
@@ -2534,7 +2537,7 @@ class Prep():
             
     
     def clean_filename(self, name):
-        invalid = '<>:"/\|?*'
+        invalid = r'<>:"/\|?*'
         for char in invalid:
             name = name.replace(char, '-')
         return name

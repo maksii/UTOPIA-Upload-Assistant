@@ -36,10 +36,10 @@ If you are looking for the latest supported version of the original L4G's Upload
 ## **Updating:**
   - To update first navigate into the Upload-Assistant directory: `cd UTOPIA-Upload-Assistant`
   - Run a `git pull` to grab latest updates
-  - Run `python3 -m pip install --user -U -r requirements.txt` to ensure dependencies are up to date
+  - Run `python -m pip install --user -U -r requirements.txt` to ensure dependencies are up to date
 ## **CLI Usage:**
   
-  `python3 upload.py /downloads/path/to/content --args`
+  `python upload.py /downloads/path/to/content --args`
   
   Args are OPTIONAL, for a list of acceptable args, pass `--help`
 
