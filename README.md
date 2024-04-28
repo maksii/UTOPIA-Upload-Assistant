@@ -2,13 +2,17 @@
 
 This is a fork of L4G's Upload Assistant for the UTOPIA tracker. The main differences between this version and the original are:
 
+* Merged updated changes from [Audionut](https://github.com/Audionut/Upload-Assistant) and [L4GSP1KE](https://github.com/L4GSP1KE/Upload-Assistant) repos
 * Utopia-specific configuration
 * Modified naming rules to comply with tracker requirements
 * Removed configuration and code specific to other trackers, making this version focused on UTOPIA only.
 * Migrated hardcoded Python configuration (.py file) to a JSON-based approach.
 * Integration with PyInstaller for building a frozen executable
-* Removed all Docker-related configurations from the project(not in roadmap right now)
-* Removed Discord-related code from the project.(not in roadmap right now)
+* Removed all Docker-related configurations from the project(not in roadmap right now. will be restored only after full project stabilization and testing)
+* Removed Discord-related code from the project.(not in roadmap right now. will be restored only after full project stabilization and testing)
+* naming rules refactored and moved to json configutation
+
+If you are looking for the latest supported version of the original L4G's Upload Assistant, please use [Audionut/Upload-Assistant](https://github.com/Audionut/Upload-Assistant).
 
 ## PyInstaller
 
@@ -16,14 +20,16 @@ This is a fork of L4G's Upload Assistant for the UTOPIA tracker. The main differ
 
 To build the frozen executable, follow these steps:
 
-1. Install PyInstaller using pip: `pip install pyinstaller`
+#### Freez Branch
 
-#### freez branch
+1. Install PyInstaller using pip: `pip install pyinstaller`
 2. Run the following command to build the executable: `pyinstaller upload.spec`
-#### other branch
-2. Copy the `upload.spec` file to your current branch
-3. update upload.py as per freez branch changes
-4. Run the following command to build the executable: `pyinstaller upload.spec`
+
+#### Other Branch
+
+1. Copy the `upload.spec` file to your current branch
+2. Update `upload.py` as per freez branch changes
+3. Run the following command to build the executable: `pyinstaller upload.spec`
 
 Note: Make sure you have the necessary dependencies installed before building.
 
