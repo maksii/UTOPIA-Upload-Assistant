@@ -10,7 +10,7 @@ This is a fork of L4G's Upload Assistant for the UTOPIA tracker. The main differ
 * Integration with PyInstaller for building a frozen executable
 * Removed all Docker-related configurations from the project(not in roadmap right now. will be restored only after full project stabilization and testing)
 * Removed Discord-related code from the project.(not in roadmap right now. will be restored only after full project stabilization and testing)
-* naming rules refactored and moved to json configutation
+* naming rules refactored and moved to json configuration
 
 If you are looking for the latest supported version of the original L4G's Upload Assistant, please use [Audionut/Upload-Assistant](https://github.com/Audionut/Upload-Assistant).
 
@@ -33,15 +33,22 @@ If you are looking for the latest supported version of the original L4G's Upload
 - UTOPIA api key - можна отримати в своєму профілі на Утопії в налаштуваннях безпеки Мій профіль-налаштування-безпека-API token
 - announce_url - можете отримати коли cтворюєте новий реліз - https://utp.to/upload/1
 
-## **Updating:**
-  - To update first navigate into the Upload-Assistant directory: `cd UTOPIA-Upload-Assistant`
-  - Run a `git pull` to grab latest updates
-  - Run `python -m pip install --user -U -r requirements.txt` to ensure dependencies are up to date
+### Windows executable
+- Download and extract from release upload-win.zip
+- update `config.json` as per Setup section\UTOPIA config
+- Right Click on `run.bat` and select `Edit in Notepad`
+- Update path to your file or folder
+- Save changes, close notepad and execute `run.bat` 
+
 ## **CLI Usage:**
   
   `python upload.py /downloads/path/to/content --args`
   
   Args are OPTIONAL, for a list of acceptable args, pass `--help`
+### **Updating:**
+  - To update first navigate into the Upload-Assistant directory: `cd UTOPIA-Upload-Assistant`
+  - Run a `git pull` to grab latest updates
+  - Run `python -m pip install --user -U -r requirements.txt` to ensure dependencies are up to date
 
 ## PyInstaller
 
@@ -66,5 +73,13 @@ Note: Make sure you have the necessary dependencies installed before building.
 
 After building the executable, perform the following steps:
 
-1. Add `config.json` and `tags.json` files to the `dist/data` directory
+1. Add `config.json`, `naming.json`, `tags.json` files to the `dist/data` directory
 2. Run the built executable with the `-help` flag to test its functionality: `dist/upload.exe -help`
+
+## Naming
+Original L4G function refactored to use json configuration, rather than hardcoded option.
+- naming.json contains default UTP naming schema back from 2023
+- naming.l4g.json contains original L4G naming schema from repo
+- naming.l4gutp.json contains mix of L4G latest schema with naming from UTP
+
+If you are required, feel free to upate naming.json to match your rules or replace\rename with one of existing options l4g or l4gutp
