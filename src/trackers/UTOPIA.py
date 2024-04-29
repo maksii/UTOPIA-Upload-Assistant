@@ -24,7 +24,8 @@ class UTOPIA():
         self.torrent_url = 'https://utp.to/api/torrents/'
         self.upload_url = 'https://utp.to/api/torrents/upload'
         self.signature = f"\n[center][url=https://utp.to/forums/topics/76]Created by UTOPIA Upload Assistant[/url][/center]"
-
+        
+        self.banned_groups = [""]
         pass
 
     async def upload(self, meta):
