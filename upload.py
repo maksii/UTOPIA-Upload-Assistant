@@ -20,7 +20,7 @@ from rich.style import Style
 
 
 
-cli_ui.setup(color='always', title="L4G's Upload Assistant")
+cli_ui.setup(color='always', title="UTOPIA Upload Assistant")
 import traceback
 
 # Determine if the application is running as a frozen executable or as a script
@@ -205,7 +205,6 @@ async def do_the_thing(base_dir):
         ####################################
         common = COMMON(config=config)
         api_trackers = ['UTOPIA']
-        http_trackers = ['HDB', 'TTG', 'FL', 'PTER', 'HDT', 'MTV']
         tracker_class_map = {'UTOPIA' : UTOPIA}
 
         for tracker in trackers:
@@ -233,27 +232,8 @@ async def do_the_thing(base_dir):
                     meta = dupe_check(dupes, meta)
                     if meta['upload'] == True:
                         await tracker_class.upload(meta)
-                        if tracker == 'SN':
-                            await asyncio.sleep(16)
+
                         await client.add_to_client(meta, tracker_class.tracker)
-            
-            if tracker in http_trackers:
-                tracker_class = tracker_class_map[tracker](config=config)
-                if meta['unattended']:
-                    upload_to_tracker = True
-                else:
-                    upload_to_tracker = cli_ui.ask_yes_no(f"Upload to {tracker_class.tracker}? {debug}", default=meta['unattended'])
-                if upload_to_tracker:
-                    console.print(f"Uploading to {tracker}")
-                    if check_banned_group(tracker_class.tracker, tracker_class.banned_groups, meta):
-                        continue
-                    if await tracker_class.validate_credentials(meta) == True:
-                        dupes = await tracker_class.search_existing(meta)
-                        dupes = await common.filter_dupes(dupes, meta)
-                        meta = dupe_check(dupes, meta)
-                        if meta['upload'] == True:
-                            await tracker_class.upload(meta)
-                            await client.add_to_client(meta, tracker_class.tracker)
 
             if tracker == "MANUAL":
                 if meta['unattended']:                
