@@ -1,0 +1,38 @@
+[project]
+name = "UTOPIA-Upload-Assistant"
+version = "2024.04.30"
+description = "Fork of L4S Upload-Assistant for UTOPIA tracker"
+dependencies = [
+    "torf",
+    "guessit",
+    "ffmpeg-python",
+    "pymediainfo",
+    "tmdbsimple",
+    "anitopy",
+    "cli-ui",
+    "qbittorrent-api",
+    "deluge-client",
+    "pyrobase",
+    "requests",
+    "cinemagoer",
+    "pyimgbox",
+    "nest_asyncio",
+    "bencode.py",
+    "unidecode",
+    "beautifulsoup4",
+    "pyoxipng",
+    "rich",
+    "Jinja2",
+    "pyotp",
+    "str2bool",
+    "setuptools"
+]
+
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.pyinstaller]
+name = "UTOPIA-Upload-Assistant"
+console = true
+

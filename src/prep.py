@@ -1903,7 +1903,7 @@ class Prep():
             torrent_creation = meta['torrent_creation']
         else:
             torrent_creation = self.config['DEFAULT'].get('torrent_creation', 'torf')
-        if torrent_creation == 'torrenttools':
+        if torrent_creation == 'torrenttools': #TBD created from
             args = ['torrenttools', 'create', '-a', 'https://fake.tracker', '--private', 'on', '--piece-size', str(2**piece_size), '--created-by', "L4G's Upload Assistant", '--no-cross-seed','-o', f"{meta['base_dir']}/tmp/{meta['uuid']}/{output_filename}.torrent"]
             if not meta['is_disc']:
                 args.extend(['--include', r'^.*\.(mkv|mp4|ts)$'])
