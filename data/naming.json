@@ -33,8 +33,29 @@
                     "description"
                 ]
             },
-            "DVD": {
+            "HDDVD": {
                 "template": "{title} {aka} {year} {edition} {repack} DVDRemux",
+                "potential_missing": [
+                    "edition",
+                    "description"
+                ]
+            },
+            "PAL DVD": {
+                "template": "{title} {alt_title} {year} {edition} {repack} {source} DVDRemux  {audio}",
+                "potential_missing": [
+                    "edition",
+                    "description"
+                ]
+            },
+            "NTSC DVD": {
+                "template": "{title} {alt_title} {year} {edition} {repack} {source} DVDRemux  {audio}",
+                "potential_missing": [
+                    "edition",
+                    "description"
+                ]
+            },
+            "DVD": {
+                "template": "{title} {alt_title} {year} {edition} {repack} {source} DVDRemux  {audio}",
                 "potential_missing": [
                     "edition",
                     "description"
@@ -96,14 +117,35 @@
         },
         "REMUX": {
             "BluRay": {
-                "template": "{title} {aka} {season}{episode} {episode_title} {year} {3D} {edition} {repack} BDRemux {resolution} {hdr}",
+                "template": "{title} {aka} {season}{episode} {year} {3D} {edition} {repack} BDRemux {resolution} {hdr}",
+                "potential_missing": [
+                    "edition",
+                    "description"
+                ]
+            },
+            "HDDVD": {
+                "template": "{title} {aka} {season}{episode} {episode_title} {year} {edition} {repack} DVDRemux",
+                "potential_missing": [
+                    "edition",
+                    "description"
+                ]
+            },
+            "PAL DVD": {
+                "template": "{title} {alt_title} {year} {edition} {repack} {source} DVDRemux  {audio}",
+                "potential_missing": [
+                    "edition",
+                    "description"
+                ]
+            },
+            "NTSC DVD": {
+                "template": "{title} {alt_title} {year} {edition} {repack} {source} DVDRemux  {audio}",
                 "potential_missing": [
                     "edition",
                     "description"
                 ]
             },
             "DVD": {
-                "template": "{title} {aka} {season}{episode} {episode_title} {year} {edition} {repack} DVDRemux",
+                "template": "{title} {alt_title} {year} {edition} {repack} {source} DVDRemux  {audio}",
                 "potential_missing": [
                     "edition",
                     "description"

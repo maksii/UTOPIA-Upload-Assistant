@@ -219,10 +219,6 @@ class Prep():
                         await asyncio.sleep(3)
                 except KeyboardInterrupt:
                     s.terminate()
-
-
-
-
         meta['tmdb'] = meta.get('tmdb_manual', None)
         if meta.get('type', None) == None:
             meta['type'] = self.get_type(video, meta['scene'], meta['is_disc'])
@@ -1405,12 +1401,13 @@ class Prep():
                             variants = ['zh', 'cn', 'cmn', 'no', 'nb']
                             if audio_language in variants and meta['original_language'] in variants:
                                 orig = True
+                                #TBD
                             # Check for additional, bloated Tracks
-                            if audio_language != meta['original_language'] and audio_language != "en":
-                                if meta['original_language'] not in variants and audio_language not in variants:
-                                    audio_language = "und" if audio_language == "" else audio_language
-                                    console.print(f"[bold red]This release has a(n) {audio_language} audio track, and may be considered bloated")
-                                    time.sleep(5)
+                            #if audio_language != meta['original_language'] and audio_language != "en":
+                            #    if meta['original_language'] not in variants and audio_language not in variants:
+                            #        audio_language = "und" if audio_language == "" else audio_language
+                            #        console.print(f"[bold red]This release has a(n) {audio_language} audio track, and may be considered bloated")
+                            #        time.sleep(5)
                     if eng and orig == True:
                         dual = "Dual-Audio"
                     elif eng == True and orig == False and meta['original_language'] not in ['zxx', 'xx', None] and meta.get('no_dub', False) == False:
@@ -2151,6 +2148,10 @@ class Prep():
         meta['season'] = "" if meta.get('no_season', False) else meta['season']
         meta['year'] = "" if meta.get('no_year', False) else meta['year']
         meta['aka'] = "" if meta.get('no_aka', False) else meta['aka']
+        meta['source'] = "" if meta.get('source', '') else meta['source']
+
+        if not meta.get('source'):
+            meta['source'] = meta.get('manual_source') or meta.get('is_disc') or meta['source']
 
         if meta['debug']:
             console.log("[cyan]get_name cat/type")
@@ -2169,14 +2170,18 @@ class Prep():
         with open(config_path, 'r', encoding="utf-8-sig") as file:
             naming_config = json.load(file)
             
-        # Get configuration based on category and type
+        # Get configuration based on meta
         category_config = naming_config.get(meta['category'], {})
         type_config = category_config.get(meta['type'], {})
-        disc_type_config = type_config.get(meta['is_disc'], type_config) if isinstance(type_config, dict) else type_config
-        
-        # Extract template and potential_missing from the configuration
-        template = disc_type_config.get('template', '')
-        potential_missing = disc_type_config.get('potential_missing', [])
+        # Check if type is DISC or REMUX
+        if meta['type'] in ['DISC', 'REMUX']:
+            source_config = type_config.get(meta['source'], {})
+        else:
+            # If type is not DISC or REMUX, use type_config directly for template and potential_missing
+            source_config = type_config
+                
+        template = source_config.get('template', '')
+        potential_missing = source_config.get('potential_missing', [])
         # Extract variables from meta for formatting
         # Format the name using the appropriate template
         format_vars = {key[1]: meta.get(key[1], '') for key in string.Formatter().parse(template) if key[1]}

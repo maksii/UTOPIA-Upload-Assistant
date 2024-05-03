@@ -113,40 +113,6 @@ class Args():
                         meta['manual_date'] = value2
                     elif key == 'tmdb_manual':
                         meta['category'], meta['tmdb_manual'] = self.parse_tmdb_id(value2, meta.get('category'))
-                    elif key == 'ptp':
-                        if value2.startswith('http'):
-                            parsed = urllib.parse.urlparse(value2)
-                            try:
-                                meta['ptp'] = urllib.parse.parse_qs(parsed.query)['torrentid'][0]
-                            except:
-                                console.print('[red]Your terminal ate  part of the url, please surround in quotes next time, or pass only the torrentid')
-                                console.print('[red]Continuing without -ptp')
-                        else:
-                            meta['ptp'] = value2
-                    elif key == 'blu':
-                        if value2.startswith('http'):
-                            parsed = urllib.parse.urlparse(value2)
-                            try:
-                                blupath = parsed.path
-                                if blupath.endswith('/'):
-                                    blupath = blupath[:-1]
-                                meta['blu'] = blupath.split('/')[-1]
-                            except:
-                                console.print('[red]Unable to parse id from url')
-                                console.print('[red]Continuing without --blu')
-                        else:
-                            meta['blu'] = value2
-                    elif key == 'hdb':
-                        if value2.startswith('http'):
-                            parsed = urllib.parse.urlparse(value2)
-                            try:
-                                meta['hdb'] = urllib.parse.parse_qs(parsed.query)['id'][0]
-                            except:
-                                console.print('[red]Your terminal ate  part of the url, please surround in quotes next time, or pass only the torrentid')
-                                console.print('[red]Continuing without -hdb')
-                        else:
-                            meta['hdb'] = value2
-
                     else:
                         meta[key] = value2
                 else:
