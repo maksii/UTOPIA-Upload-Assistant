@@ -2148,8 +2148,7 @@ class Prep():
         meta['season'] = "" if meta.get('no_season', False) else meta['season']
         meta['year'] = "" if meta.get('no_year', False) else meta['year']
         meta['aka'] = "" if meta.get('no_aka', False) else meta['aka']
-        meta['source'] = "" if meta.get('source', '') else meta['source']
-
+        
         if not meta.get('source'):
             meta['source'] = meta.get('manual_source') or meta.get('is_disc') or meta['source']
 
@@ -2179,7 +2178,7 @@ class Prep():
         else:
             # If type is not DISC or REMUX, use type_config directly for template and potential_missing
             source_config = type_config
-                
+    
         template = source_config.get('template', '')
         potential_missing = source_config.get('potential_missing', [])
         # Extract variables from meta for formatting
