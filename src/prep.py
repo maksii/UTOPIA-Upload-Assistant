@@ -2579,7 +2579,7 @@ class Prep():
 
             if meta.get('desc_template', None) != None:
                 from jinja2 import Template
-                with open(f"{meta['base_dir']}/data/templates/{meta['desc_template']}.txt", 'r') as f:
+                with open(f"{meta['base_dir']}/data/templates/{meta['desc_template']}.txt", 'r', encoding='utf-8') as f:
                     desc_templater = Template(f.read())
                     template_desc = desc_templater.render(meta)
                     if template_desc.strip() != "":
@@ -2607,7 +2607,7 @@ class Prep():
                 
             if descfile != None:
                 if os.path.isfile(descfile) == True:
-                    text = open(descfile, 'r').read()
+                    text = open(descfile, 'r', encoding='utf-8').read()
                     description.write(text)
                 meta['description'] = "CUSTOM"
             if meta['desc'] != None:
