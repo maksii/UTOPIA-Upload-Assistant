@@ -24,7 +24,11 @@ a = Analysis(
         'babelfish.utils',
         'babelfish.converters.countryname',
         'guessit.data',
-        'multiprocessing'
+        'multiprocessing',
+        'pkg_resources',  
+        'pkg_resources.extern', 
+        'pkg_resources._vendor',  
+        'pkg_resources._vendor.packaging' 
     ],
     hookspath=[],
     hooksconfig={},
