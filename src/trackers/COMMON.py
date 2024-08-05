@@ -31,7 +31,15 @@ class COMMON():
             new_torrent.metainfo['comment'] = comment
             new_torrent.metainfo['info']['source'] = source_flag
             Torrent.copy(new_torrent).write(f"{meta['base_dir']}/tmp/{meta['uuid']}/[{tracker}]{meta['clean_name']}.torrent", overwrite=True)
-    
+            
+    def generate_images_text(images, screen_count):
+       images_text = ""
+       for each in range(len(images[:screen_count])):
+           web_url = images[each]['web_url']
+           raw_url = images[each]['raw_url']
+           images_text += f"[url={web_url}][img=350]{raw_url}[/img][/url]"
+       return images_text
+      
     
     async def unit3d_edit_desc(self, meta, tracker, signature, comparison=False, desc_header=""):
         base = open(f"{meta['base_dir']}/tmp/{meta['uuid']}/DESCRIPTION.txt", 'r', encoding='utf8').read()
@@ -65,23 +73,24 @@ class COMMON():
                 desc = bbcode.convert_comparison_to_collapse(desc, 1000)
         
             desc = desc.replace('[img]', '[img=300]')
-            descfile.write(desc)
             images = meta['image_list']
-            if len(images) > 0: 
-                descfile.write("[center]")
-                for each in range(len(images[:int(meta['screens'])])):
-                    web_url = images[each]['web_url']
-                    raw_url = images[each]['raw_url']
-                    descfile.write(f"[url={web_url}][img=350]{raw_url}[/img][/url]")
-                descfile.write("[/center]")
+            screen_count = int(meta['screens'])
+
+            if '%SCREENS%' in desc:
+                images_text = COMMON.generate_images_text(images, screen_count)
+                desc = desc.replace('%SCREENS%', images_text)
+            else:
+                if len(images) > 0:
+                    desc += "[center]"
+                    images_text = COMMON.generate_images_text(images, screen_count)
+                    desc += images_text
+                    desc += "[/center]"
+            descfile.write(desc)
 
             if signature != None:
                 descfile.write(signature)
             descfile.close()
         return 
-    
-
-    
     
     async def unit3d_region_ids(self, region):
         region_id = {
