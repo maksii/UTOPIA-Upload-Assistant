@@ -2,7 +2,7 @@
     "MOVIE": {
         "DISC": {
             "BDMV": {
-                "template": "{title} {aka} {year} {3D} {edition} {repack} {resolution} {region} {uhd} {source} {hdr} {video_codec} {audio}",
+                "template": "{title} {aka} {year} {3D} {edition} {repack} {resolution} {region} {source} {hdr} {video_codec} {audio}",
                 "potential_missing": [
                     "edition",
                     "region",
@@ -27,7 +27,7 @@
         },
         "REMUX": {
             "BluRay": {
-                "template": "{title} {aka} {year} {3D} {edition} {repack} {uhd} BDRemux {resolution} {hdr}",
+                "template": "{title} {aka} {year} {3D} {edition} {repack} BDRemux {resolution} {hdr}",
                 "potential_missing": [
                     "edition",
                     "description"
@@ -92,7 +92,7 @@
     "TV": {
         "DISC": {
             "BDMV": {
-                "template": "{title} {year} {aka} {season}{episode} {3D} {edition} {repack} {resolution} {region} {uhd} {source} {hdr} {video_codec} {audio}",
+                "template": "{title} {year} {aka} {season}{episode} {3D} {edition} {repack} {resolution} {region} {source} {hdr} {video_codec} {audio}",
                 "potential_missing": [
                     "edition",
                     "region",

@@ -4,10 +4,14 @@ on:
   push:
     branches:
       - main  # This triggers the workflow on pushes to the main branch
-
+    paths-ignore:
+      - '.github/**'
+      - '.*'
+      - 'README.md'
+      
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
     - name: Checkout code
@@ -29,9 +33,24 @@ jobs:
     - name: Build executable
       run: pyinstaller upload.spec
 
+    - name: Prepare files for zip
+      run: |
+        mkdir zip_content
+        mkdir zip_content/data
+        Copy-Item -Path dist/upload.exe -Destination zip_content/
+        Copy-Item -Path data/config.example.json -Destination zip_content/data/config.json
+        Copy-Item -Path data/naming.json -Destination zip_content/data/
+        Copy-Item -Path data/tags.json -Destination zip_content/data/
+
+    - name: Create zip file
+      run: |
+        Compress-Archive -Path zip_content/* -DestinationPath utopia_ua.zip
+
     - name: Archive executable
-      run: zip -r utopia_ua.zip dist/
-      # Adjust the path to your executable if necessary
+      uses: actions/upload-artifact@v3
+      with:
+        name: upload-executable
+        path: utopia_ua.zip
 
     - name: Create Tag
       id: create_tag
@@ -45,7 +64,7 @@ jobs:
       id: create_release
       uses: actions/create-release@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
       with:
         tag_name: ${{ env.TAG_NAME }}
         release_name: Release ${{ env.TAG_NAME }}
@@ -58,6 +77,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./utopia_ua.zip
+        asset_path: utopia_ua.zip
         asset_name: utopia_ua.zip
         asset_content_type: application/zip
