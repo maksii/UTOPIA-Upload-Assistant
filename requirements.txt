@@ -4,7 +4,6 @@ ffmpeg-python
 pymediainfo
 tmdbsimple
 anitopy
-cli-ui
 qbittorrent-api
 deluge-client
 pyrobase
@@ -21,3 +20,5 @@ Jinja2
 pyotp
 str2bool
 setuptools
+packaging
+langcodes
