@@ -107,10 +107,6 @@ class UTOPIA():
             console.print(data)
         open_torrent.close()
 
-
-
-
-
     async def get_cat_id(self, category_name, edition):
         category_id = {
             'MOVIE': '1',
@@ -140,9 +136,6 @@ class UTOPIA():
             '1080i': '4'
             }.get(resolution, '1')
         return resolution_id
-
-
-
 
     async def search_existing(self, meta):
         dupes = []
