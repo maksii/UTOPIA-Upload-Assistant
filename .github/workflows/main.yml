@@ -54,9 +54,10 @@ jobs:
 
     - name: Create Tag
       id: create_tag
+      shell: pwsh
       run: |
-        TAG_NAME=v$(date +'%Y%m%d%H%M%S')
-        echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
+        $TAG_NAME = "v$(Get-Date -Format 'yyyyMMddHHmmss')"
+        echo "TAG_NAME=$TAG_NAME" >> $env:GITHUB_ENV
         git tag $TAG_NAME
         git push origin $TAG_NAME
 
@@ -74,7 +75,7 @@ jobs:
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: utopia_ua.zip
