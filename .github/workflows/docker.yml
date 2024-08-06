@@ -35,4 +35,4 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: maksii/UTOPIA-Upload-Assistant:${{ steps.set_docker_tag.outputs.tag }}
+          tags: maksii/utopia-upload-assistant:${{ steps.set_docker_tag.outputs.tag }}
