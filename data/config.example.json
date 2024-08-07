@@ -4,15 +4,25 @@
         "imgbb_api": "imgbb api key",
         "ptpimg_api": "ptpimg api key",
         "lensdump_api": "lensdump api key",
+        "ptscreens_api" : "ptscreens_API_KEY", 
+        "oeimg_api" : "oeimg_API_KEY", 
         "img_host_1": "imgbb",
-        "img_host_2": "imgbox",
-        "img_host_3": "ptpimg",
+        "img_host_2": "ptpimg",
+        "img_host_3": "imgbox",
         "img_host_4": "pixhost",
         "img_host_5": "lensdump",
+        "img_host_6": "ptscreens",
+        "img_host_7": "oeimg",
         "screens": "6",
+        "img_size" : "500",
         "optimize_images": "True",
-        "default_torrent_client": "utopia",
-        "sfx_on_prompt": "True"
+        "default_torrent_client": "qbit",
+        "sfx_on_prompt": "True",
+        "use_global_sigs": "True",     
+        "global_sig": "\n[center][url=https://utp.to/forums/topics/76]Created by UTOPIA Upload Assistant[/url][/center]", 
+        "global_anon_sig": "\n[center][url=https://utp.to/forums/topics/76]Created by UTOPIA Upload Assistant[/url][/center]",
+        "global_pr_sig": "\n[center][url=https://utp.to/forums/topics/76]Created by UTOPIA Upload Assistant[/url][/center]",
+        "global_anon_pr_sig": "\n[center][url=https://utp.to/forums/topics/76]Created by UTOPIA Upload Assistant[/url][/center]"
     },
     "TRACKERS": {
         "default_trackers": "UTOPIA",
@@ -23,14 +33,7 @@
         }
     },
     "TORRENT_CLIENTS": {
-        "Client1": {
-            "torrent_client": "qbit",
-            "qbit_url": "http://127.0.0.1",
-            "qbit_port": "8080",
-            "qbit_user": "username",
-            "qbit_pass": "password"
-        },
-        "qbit_sample": {
+        "qbit": {
             "torrent_client": "qbit",
             "enable_search": "True",
             "qbit_url": "http://127.0.0.1",
@@ -38,21 +41,10 @@
             "qbit_user": "username",
             "qbit_pass": "password"
         },
-        "utopia": {
+        "rtorrent": {
             "torrent_client": "rtorrent",
             "rtorrent_url": "https://user:password@server.host.tld:443/username/rutorrent/plugins/httprpc/action.php",
             "torrent_storage_dir": "C:\\Upload\\torrents"
-        },
-        "deluge_sample": {
-            "torrent_client": "deluge",
-            "deluge_url": "localhost",
-            "deluge_port": "8080",
-            "deluge_user": "username",
-            "deluge_pass": "password"
-        },
-        "watch_sample": {
-            "torrent_client": "watch",
-            "watch_folder": "/Path/To/Watch/Folder"
         }
     }
 }
