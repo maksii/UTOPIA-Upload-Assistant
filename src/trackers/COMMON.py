@@ -81,12 +81,12 @@ class COMMON():
             screen_count = int(meta['screens'])
 
             if '%SCREENS%' in desc:
-                images_text = COMMON.generate_images_text(images, screen_count, self.config["DEFAULT"]["img_size"])
+                images_text = COMMON.generate_images_text(images, screen_count, img_size)
                 desc = desc.replace('%SCREENS%', images_text)
             else:
                 if len(images) > 0:
                     desc += f"\n[center]"
-                    images_text = COMMON.generate_images_text(images, screen_count, self.config["DEFAULT"]["img_size"])
+                    images_text = COMMON.generate_images_text(images, screen_count, img_size)
                     desc += images_text
                     if img_size and inline_imgs:
                         try:
@@ -337,7 +337,7 @@ class COMMON():
                 {
                     'search' : str(meta.get('tv_pack', 0)),
                     'search_for' : '1',
-                    'update' : {f"{meta['season']}(?!E\d+)"}
+                    'update' : {fr"{meta['season']}(?!E\d+)"}
                 },
                 {
                     'search' : meta['episode'],

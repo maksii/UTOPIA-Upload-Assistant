@@ -9,18 +9,34 @@ from pathlib import Path
 import asyncio
 import os
 import sys
+import re
 import platform
 import shutil
 import glob
-import cli_ui
+import subprocess
+import traceback
+import time
+import random
+from packaging.version import Version
 
 from src.console import console
 from rich.markdown import Markdown
 from rich.style import Style
+from rich.prompt import Prompt, Confirm
+from rich.text import Text
+from rich.panel import Panel
+from rich.table import Table
+from rich.align import Align
+from rich.rule import Rule
+from rich.console import Group
+from rich.progress import Progress, TimeRemainingColumn
+from difflib import SequenceMatcher
+import bencodepy as bencode
+from urllib.parse import urlparse, parse_qs
+import importlib
 
 
 
-cli_ui.setup(color='always', title="L4G's Upload Assistant")
 import traceback
 
 # Determine if the application is running as a frozen executable or as a script
@@ -78,7 +94,7 @@ async def do_the_thing(base_dir):
                 console.print(Markdown(f"- {md_text.rstrip()}\n\n", style=Style(color='cyan')))
                 console.print("\n\n")
             else:
-                console.print(f"[red]1Path: [bold red]{path}[/bold red] does not exist")
+                console.print(f"[red]Path: [bold red]{path}[/bold red] does not exist")
                 
         elif os.path.exists(os.path.dirname(path)) and len(paths) != 1:
             queue = paths
@@ -100,7 +116,7 @@ async def do_the_thing(base_dir):
                     if os.path.exists(p1):
                         queue.append(p1)
                     else:
-                        console.print(f"[red]1Path: [bold red]{p1}[/bold red] does not exist")
+                        console.print(f"[red]Path: [bold red]{p1}[/bold red] does not exist")
             if len(queue) >= 1:
                 md_text = "\n - ".join(queue)
                 console.print("\n[bold green]Queuing these files:[/bold green]", end='')
@@ -179,20 +195,28 @@ async def do_the_thing(base_dir):
             json.dump(meta, f, indent=4)
             f.close()
         confirm = get_confirmation(meta)  
-        while confirm == False:
+        while not confirm:
             # help.print_help()
-            editargs = cli_ui.ask_string("Input args that need correction e.g.(--tag NTb --category tv --tmdb 12345)")
-            editargs = (meta['path'],) + tuple(editargs.split())
-            if meta['debug']:
-                editargs = editargs + ("--debug",)
-            meta, help, before_args = parser.parse(editargs, meta)
-            # meta = await prep.tmdb_other_meta(meta)
-            meta['edit'] = True
-            meta = await prep.gather_prep(meta=meta, mode='cli') 
-            meta['name_notag'], meta['name'], meta['clean_name'], meta['potential_missing'] = await prep.get_name(meta)
-            confirm = get_confirmation(meta)
-        
-        if isinstance(trackers, list) == False:
+            console.print("Input args that need correction e.g.(--tag NTb --category tv --tmdb 12345)")  
+            console.print("Enter 'skip' if no correction needed", style="dim")
+            editargs = Prompt.ask("")
+            if editargs.lower() == 'skip':
+                break
+            elif editargs == '':
+                console.print("Invalid input. Please try again or type 'skip' to pass.", style="dim")
+            else:
+                editargs = (meta['path'],) + tuple(editargs.split())
+                if meta['debug']:
+                    editargs = editargs + ("--debug",)
+                meta, help, before_args = parser.parse(editargs, meta)
+                meta['edit'] = True
+                meta = await prep.gather_prep(meta=meta, mode='cli') 
+                meta['name_notag'], meta['name'], meta['clean_name'], meta['potential_missing'] = await prep.get_name(meta)
+                confirm = get_confirmation(meta)
+                if confirm:
+                    break
+
+        if not isinstance(trackers, list):
             trackers = [trackers]
         trackers = [s.strip().upper() for s in trackers]
         if meta.get('manual', False):
@@ -222,7 +246,7 @@ async def do_the_thing(base_dir):
                 if meta['unattended']:
                     upload_to_tracker = True
                 else:
-                    upload_to_tracker = cli_ui.ask_yes_no(f"Upload to {tracker_class.tracker}? {debug}", default=meta['unattended'])
+                    upload_to_tracker = Confirm.ask(f"Upload to {tracker_class.tracker}? {debug}")
                 if upload_to_tracker:
                     console.print(f"Uploading to {tracker_class.tracker}")
                     if check_banned_group(tracker_class.tracker, tracker_class.banned_groups, meta):
@@ -230,7 +254,7 @@ async def do_the_thing(base_dir):
                     dupes = await tracker_class.search_existing(meta)
                     dupes = await common.filter_dupes(dupes, meta)
                     # note BHDTV does not have search implemented.
-                    meta = dupe_check(dupes, meta)
+                    meta, skipped = dupe_check(dupes, meta)
                     if meta['upload'] == True:
                         await tracker_class.upload(meta)
                         if tracker == 'SN':
@@ -242,7 +266,7 @@ async def do_the_thing(base_dir):
                 if meta['unattended']:
                     upload_to_tracker = True
                 else:
-                    upload_to_tracker = cli_ui.ask_yes_no(f"Upload to {tracker_class.tracker}? {debug}", default=meta['unattended'])
+                    upload_to_tracker = Confirm.ask(f"Upload to {tracker_class.tracker}? {debug}", choices=["y", "N"])
                 if upload_to_tracker:
                     console.print(f"Uploading to {tracker}")
                     if check_banned_group(tracker_class.tracker, tracker_class.banned_groups, meta):
@@ -250,7 +274,7 @@ async def do_the_thing(base_dir):
                     if await tracker_class.validate_credentials(meta) == True:
                         dupes = await tracker_class.search_existing(meta)
                         dupes = await common.filter_dupes(dupes, meta)
-                        meta = dupe_check(dupes, meta)
+                        meta, skipped = dupe_check(dupes, meta)
                         if meta['upload'] == True:
                             await tracker_class.upload(meta)
                             await client.add_to_client(meta, tracker_class.tracker)
@@ -259,7 +283,7 @@ async def do_the_thing(base_dir):
                 if meta['unattended']:                
                     do_manual = True
                 else:
-                    do_manual = cli_ui.ask_yes_no(f"Get files for manual upload?", default=True)
+                    do_manual = Confirm.ask(f"Get files for manual upload?", default=True)
                 if do_manual:
                     for manual_tracker in trackers:
                         if manual_tracker != 'MANUAL':
@@ -277,27 +301,28 @@ async def do_the_thing(base_dir):
                         console.print(f"[green]Files can be found at: [yellow]{url}[/yellow]")  
 
 def get_confirmation(meta):
-    if meta['debug'] == True:
+    if meta['debug']:
         console.print("[bold red]DEBUG: True")
     console.print(f"Prep material saved to {meta['base_dir']}/tmp/{meta['uuid']}")
-    console.print()
-    cli_ui.info_section(cli_ui.yellow, "Database Info")
-    cli_ui.info(f"Title: {meta['title']} ({meta['year']})")
-    console.print()
-    cli_ui.info(f"Overview: {meta['overview']}")
-    console.print()
-    cli_ui.info(f"Category: {meta['category']}")
+    console.print()    
+    db_info = [
+        f"[bold]Title[/bold]: {meta['title']} ({meta['year']})\n",
+        f"[bold]Overview[/bold]: {meta['overview']}\n",
+        f"[bold]Category[/bold]: {meta['category']}\n",
+    ]
     if int(meta.get('tmdb', 0)) != 0:
-        cli_ui.info(f"TMDB: https://www.themoviedb.org/{meta['category'].lower()}/{meta['tmdb']}")
+        db_info.append(f"TMDB: https://www.themoviedb.org/{meta['category'].lower()}/{meta['tmdb']}")
     if int(meta.get('imdb_id', '0')) != 0:
-        cli_ui.info(f"IMDB: https://www.imdb.com/title/tt{meta['imdb_id']}")
+        db_info.append(f"IMDB: https://www.imdb.com/title/tt{meta['imdb_id']}")
     if int(meta.get('tvdb_id', '0')) != 0:
-        cli_ui.info(f"TVDB: https://www.thetvdb.com/?id={meta['tvdb_id']}&tab=series")
+        db_info.append(f"TVDB: https://www.thetvdb.com/?id={meta['tvdb_id']}&tab=series")
     if int(meta.get('mal_id', 0)) != 0:
-        cli_ui.info(f"MAL : https://myanimelist.net/anime/{meta['mal_id']}")
+        db_info.append(f"MAL : https://myanimelist.net/anime/{meta['mal_id']}")
+
+    console.print(Panel("\n".join(db_info), title="Database Info", border_style="bold yellow"))
     console.print()
     if int(meta.get('freeleech', '0')) != 0:
-        cli_ui.info(f"Freeleech: {meta['freeleech']}")
+        console.print(f"[bold]Freeleech[/bold]: {meta['freeleech']}")
     if meta['tag'] == "":
             tag = ""
     else:
@@ -307,55 +332,124 @@ def get_confirmation(meta):
     else:
         res = meta['resolution']
 
-    cli_ui.info(f"{res} / {meta['type']}{tag}")
+    console.print(Text(f" {res} / {meta['type']}{tag}", style="bold"))
     if meta.get('personalrelease', False) == True:
-        cli_ui.info("Personal Release!")
+        console.print("[bright_magenta]Personal Release!")
     console.print()
-    if meta.get('unattended', False) == False:
+    if not meta.get('unattended', False):
         get_missing(meta)
         ring_the_bell = "\a" if config['DEFAULT'].get("sfx_on_prompt", True) == True else "" # \a rings the bell
-        cli_ui.info_section(cli_ui.yellow, f"Is this correct?{ring_the_bell}") 
-        cli_ui.info(f"Name: {meta['name']}")
-        confirm = cli_ui.ask_yes_no("Correct?", default=False)
+        console.print(f"[bold yellow]Is this correct?{ring_the_bell}") 
+        console.print(f"[bold]Name[/bold]: {meta['name']}")
+        confirm = Confirm.ask(" Correct?")
     else:
-        cli_ui.info(f"Name: {meta['name']}")
+        console.print(f"[bold]Name[/bold]: {meta['name']}")
         confirm = True
     return confirm
 
 def dupe_check(dupes, meta):
     if not dupes:
-            console.print("[green]No dupes found")
-            meta['upload'] = True   
-            return meta
-    else:
-        console.print()    
-        dupe_text = "\n".join(dupes)
-        console.print()
-        cli_ui.info_section(cli_ui.bold, "Are these dupes?")
-        cli_ui.info(dupe_text)
-        if meta['unattended']:
-            if meta.get('dupe', False) == False:
-                console.print("[red]Found potential dupes. Aborting. If this is not a dupe, or you would like to upload anyways, pass --skip-dupe-check")
-                upload = False
+        console.print("[green]No dupes found")
+        meta['upload'] = True   
+        return meta, False  # False indicates not skipped
+
+    table = Table(
+        title="Are these dupes?",
+        title_justify="center",
+        show_header=True,
+        header_style="bold underline",
+        expand=True,
+        show_lines=False,
+        box=None
+    )
+
+    table.add_column("Name")
+    table.add_column("Size", justify="center")
+
+    for name, size in dupes.items():
+        try:
+            if "GB" in str(size).upper():
+                size_gb = str(size).upper()
             else:
-                console.print("[yellow]Found potential dupes. --skip-dupe-check was passed. Uploading anyways")
-                upload = True
-        console.print()
-        if not meta['unattended']:
-            if meta.get('dupe', False) == False:
-                upload = cli_ui.ask_yes_no("Upload Anyways?", default=False)
-            else:
-                upload = True
-        if upload == False:
+                size = int(size)
+                if size > 0:
+                    size_gb = str(round(size / (1024 ** 3), 2)) + " GB"  # Convert size to GB
+                else:
+                    size_gb = "N/A"
+        except ValueError:
+            size_gb = "N/A"
+        table.add_row(name, f"[magenta]{size_gb}[/magenta]")
+
+    console.print()
+    console.print(table)
+    console.print()
+
+    def preprocess_string(text):
+        text = re.sub(r'\[[a-z]{3}\]', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'[^\w\s]', '', text)
+        text = text.lower()
+        return text
+
+    def handle_similarity(similarity, meta):
+        if similarity == 1.0:
+            console.print(f"[red]Found exact match dupe.[dim](byte-for-byte)[/dim] Aborting..")
             meta['upload'] = False
+            return meta, True  # True indicates skipped
+        elif meta['unattended']:
+            console.print(f"[red]Found potential dupe with {similarity * 100:.2f}% similarity. Aborting.")
+            meta['upload'] = False
+            return meta, True  # True indicates skipped
         else:
-            meta['upload'] = True
-            for each in dupes:
-                if each == meta['name']:
-                    meta['name'] = f"{meta['name']} DUPE?"
+            upload = Confirm.ask(" Upload Anyways?")
+            if not upload:
+                meta['upload'] = False
+                return meta, True  # True indicates skipped
+        return meta, False  # False indicates not skipped
 
-        return meta
+    similarity_threshold = max(90.00 / 100, 0.70)
+    size_tolerance = max(min(30, 100), 1) / 100
 
+    cleaned_meta_name = preprocess_string(meta['clean_name'])
+
+    for name, dupe_size in dupes.items():
+        if isinstance(dupe_size, str) and "GB" in dupe_size:
+            dupe_size = float(dupe_size.replace(" GB", "")) * (1024 ** 3)  # Convert GB to bytes
+        elif isinstance(dupe_size, (int, float)) and dupe_size != 0:
+            meta_size = meta.get('content_size')
+            if meta_size is None:
+                meta_size = extract_size_from_torrent(meta['base_dir'], meta['uuid'])
+            dupe_size = int(dupe_size)   
+            if abs(meta_size - size) <= size_tolerance * meta_size:
+                cleaned_dupe_name = preprocess_string(name)
+                similarity = SequenceMatcher(None, cleaned_meta_name, cleaned_dupe_name).ratio()
+                if similarity >= similarity_threshold:
+                    meta, skipped = handle_similarity(similarity, meta)
+                    if skipped:
+                        return meta, True  # True indicates skipped
+        else:
+            cleaned_dupe_name = preprocess_string(name)
+            similarity = SequenceMatcher(None, cleaned_meta_name, cleaned_dupe_name).ratio()
+            if similarity >= similarity_threshold:
+                meta, skipped = handle_similarity(similarity, meta)
+                if skipped:
+                    return meta, True  # True indicates skipped
+
+    console.print("[yellow]No dupes found above the similarity threshold. Uploading anyways.")
+    meta['upload'] = True
+    return meta, False  # False indicates not skipped
+
+def extract_size_from_torrent(base_dir, uuid):
+    torrent_path = f"{base_dir}/tmp/{uuid}/BASE.torrent"
+    with open(torrent_path, 'rb') as f:
+        torrent_data = bencode.decode(f.read())
+    
+    info = torrent_data[b'info']
+    if b'files' in info:
+        # Multi-file torrent
+        return sum(file[b'length'] for file in info[b'files'])
+    else:
+        # Single-file torrent
+        return info[b'length']
 
 # Return True if banned group
 def check_banned_group(tracker, banned_group_list, meta):
@@ -374,7 +468,7 @@ def check_banned_group(tracker, banned_group_list, meta):
                     console.print(f"[bold yellow]{meta['tag'][1:]}[/bold yellow][bold red] was found on [bold yellow]{tracker}'s[/bold yellow] list of banned groups.")
                     q = True
         if q:
-            if not cli_ui.ask_yes_no(cli_ui.red, "Upload Anyways?", default=False):
+            if meta.get('unattended', False) or not Confirm.ask("[bold red] Upload Anyways?"):
                 return True
     return False
 
@@ -398,15 +492,22 @@ def get_missing(meta):
                     each = 'imdb' 
                 missing.append(f"--{each} | {info_notes.get(each)}")
     if missing != []:
-        cli_ui.info_section(cli_ui.yellow, "Potentially missing information:")
+        console.print(Rule("Potentially missing information", style="bold yellow"))
         for each in missing:
             if each.split('|')[0].replace('--', '').strip() in ["imdb"]:
-                cli_ui.info(cli_ui.red, each)
+                console.print(Text(each, style="bold red"))
             else:
-                cli_ui.info(each)
+                console.print(each)
 
     console.print()
     return
+
+def list_directory(directory):
+    items = []
+    for file in os.listdir(directory):
+        if not file.startswith('.'):
+            items.append(os.path.abspath(os.path.join(directory, file)))
+    return items
 
 def main():
     pyver = platform.python_version_tuple()
