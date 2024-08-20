@@ -1,21 +1,11 @@
-# -*- coding: utf-8 -*-
-# import discord
 import asyncio
 import requests
-import os
-
-from str2bool import str2bool
+import json
 from src.trackers.COMMON import COMMON
 from src.console import console
+import platform
 
 class UTOPIA():
-    """
-    Edit for Tracker:
-        Edit BASE.torrent with announce and source
-        Check for duplicates
-        Set type/category IDs
-        Upload
-    """
     def __init__(self, config):
         self.config = config
         self.tracker = 'UTOPIA'
@@ -23,7 +13,6 @@ class UTOPIA():
         self.search_url = 'https://utp.to/api/torrents/filter'
         self.torrent_url = 'https://utp.to/api/torrents/'
         self.upload_url = 'https://utp.to/api/torrents/upload'
-        self.signature = f"\n[center][url=https://utp.to/forums/topics/76]Created by UTOPIA Upload Assistant[/url][/center]"
         
         self.banned_groups = [""]
         pass
@@ -31,16 +20,16 @@ class UTOPIA():
     async def upload(self, meta):
         common = COMMON(config=self.config)
         await common.edit_torrent(meta, self.tracker, self.source_flag)
-        await common.unit3d_edit_desc(meta, self.tracker, self.signature, comparison=True)
+        await common.unit3d_edit_desc(meta, self.tracker, comparison=True)
         cat_id = await self.get_cat_id(meta['category'], meta.get('edition', ''))
         type_id = await self.get_type_id(meta['type'])
         resolution_id = await self.get_res_id(meta['resolution'])
         region_id = await common.unit3d_region_ids(meta.get('region'))
         distributor_id = await common.unit3d_distributor_ids(meta.get('distributor'))
-        if meta['anon'] == 0 and bool(str2bool(str(self.config['TRACKERS'][self.tracker].get('anon', "False")))) == False:
-            anon = 0
-        else:
+        if meta['anon'] != 0 or self.config['TRACKERS'][self.tracker].get('anon', False):
             anon = 1
+        else:
+            anon = 0
 
         if meta['bdinfo'] != None:
             mi_dump = None
@@ -76,7 +65,7 @@ class UTOPIA():
             'sticky' : 0
         }
         # Internal
-        if self.config['TRACKERS'][self.tracker].get('internal', False) == True:
+        if self.config['TRACKERS'][self.tracker].get('internal', False):
             if meta['tag'] != "" and (meta['tag'][1:] in self.config['TRACKERS'][self.tracker].get('internal_groups', [])):
                 data['internal'] = 1
 
@@ -94,18 +83,40 @@ class UTOPIA():
             'api_token': self.config['TRACKERS'][self.tracker]['api_key'].strip()
         }
 
-        if meta['debug'] == False:
-            response = requests.post(url=self.upload_url, files=files, data=data, headers=headers, params=params)
+        if not meta['debug']:
+            success = 'Unknown'
             try:
-                console.print(response.json())
-            except:
-                console.print("It may have uploaded, go check")
+                response = requests.post(url=self.upload_url, files=files, data=data, headers=headers, params=params)
+                response.raise_for_status()                
+                response_json = response.json()
+                success = response_json.get('success', False)
+                data = response_json.get('data', {})
+            except Exception as e:
+                console.print(f"[red]Encountered Error: {e}[/red]\n[bold yellow]May have uploaded, please go check..")
 
-                return
-        else:
-            console.print(f"[cyan]Request Data:")
-            console.print(data)
-        open_torrent.close()
+            if success == 'Unknown':
+                console.print("[bold yellow]Status of upload is unknown, please go check..")
+                success = False
+            elif success:
+                console.print("[bold green]Torrent uploaded successfully!")
+            else:
+                console.print("[bold red]Torrent upload failed.")
+
+            if data:
+                if 'name' in data and 'The name has already been taken.' in data['name']:
+                    console.print("[red]Name has already been taken.")
+                if 'info_hash' in data and 'The info hash has already been taken.' in data['info_hash']:
+                    console.print("[red]Info hash has already been taken.")                
+            else:
+                console.print("[cyan]Request Data:")
+                console.print(data)
+    
+            try:
+                open_torrent.close()
+            except Exception as e:
+                console.print(f"[red]Failed to close torrent file: {e}[/red]")
+
+            return success 
 
     async def get_cat_id(self, category_name, edition):
         category_id = {
@@ -138,7 +149,7 @@ class UTOPIA():
         return resolution_id
 
     async def search_existing(self, meta):
-        dupes = []
+        dupes = {}
         console.print("[yellow]Searching for existing torrents on site...")
         params = {
             'api_token' : self.config['TRACKERS'][self.tracker]['api_key'].strip(),
@@ -156,10 +167,9 @@ class UTOPIA():
             response = requests.get(url=self.search_url, params=params)
             response = response.json()
             for each in response['data']:
-                result = [each][0]['attributes']['name']
-                # difference = SequenceMatcher(None, meta['clean_name'], result).ratio()
-                # if difference >= 0.05:
-                dupes.append(result)
+                result = each['attributes']['name']
+                size = each['attributes']['size']
+                dupes[result] = size
         except:
             console.print('[bold red]Unable to search for existing torrents on site. Either the site is down or your API key is incorrect')
             await asyncio.sleep(5)

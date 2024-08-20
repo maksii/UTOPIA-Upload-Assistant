@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from sys import meta_path
 from src.args import Args
 from src.console import console
 from src.exceptions import *
@@ -40,9 +41,12 @@ try:
     from subprocess import Popen
     import subprocess
     import itertools
-    import cli_ui
+    from rich.prompt import Prompt
     from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn
+    from rich.traceback import install, Traceback
     import platform
+    import langcodes
+    from requests.exceptions import HTTPError
 except ModuleNotFoundError:
     console.print(traceback.print_exc())
     console.print('[bold red]Missing Module Found. Please reinstall required dependancies.')
@@ -50,10 +54,7 @@ except ModuleNotFoundError:
     exit()
 except KeyboardInterrupt:
     exit()
-
-
-
-
+install ()
 
 class Prep():
     """
@@ -236,6 +237,12 @@ class Prep():
         else:
             meta['tmdb_manual'] = meta.get('tmdb', None)
 
+        # Check for TMDb not found
+        uuid = meta.get('uuid', '')
+        if meta.get('unattended') and (meta.get('tmdb') is None or int(meta['tmdb']) == 0):
+            meta['tmdb_not_found'] = True
+            console.print(f"[red]Unable to find TMDb match for {Path(uuid).stem}")
+            return meta
         
         # If no tmdb, use imdb for meta
         if int(meta['tmdb']) == 0:
@@ -276,7 +283,7 @@ class Prep():
         else:
             meta['video_encode'], meta['video_codec'], meta['has_encode_settings'], meta['bit_depth'] = self.get_video_encode(mi, meta['type'], bdinfo)
         
-        meta['edition'], meta['repack'] = self.get_edition(meta['path'], bdinfo, meta['filelist'], meta.get('manual_edition'))
+        meta['edition'], meta['repack'], meta['cut'], meta['ratio'] = self.get_edition(meta['title'], meta['path'], bdinfo, meta['filelist'], meta.get('manual_edition'))
         if "REPACK" in meta.get('edition', ""):
             meta['repack'] = re.search(r"REPACK[\d]?", meta['edition'])[0]
             meta['edition'] = re.sub(r"REPACK[\d]?", "", meta['edition']).strip().replace('  ', ' ')
@@ -368,7 +375,7 @@ class Prep():
     """
     def get_video(self, videoloc, mode):
         filelist = []
-        videoloc = os.path.abspath(videoloc)
+        videoloc = os.path.normpath(os.path.abspath(videoloc))
         if os.path.isdir(videoloc):
             globlist = glob.glob1(videoloc, "*.mkv") + glob.glob1(videoloc, "*.mp4") + glob.glob1(videoloc, "*.ts")
             for file in globlist:
@@ -386,42 +393,40 @@ class Prep():
         filelist = sorted(filelist)
         return video, filelist
 
-
-
-
-
-
     """
     Get and parse mediainfo
     """
     def exportInfo(self, video, isdir, folder_id, base_dir, export_text):
-        if os.path.exists(f"{base_dir}/tmp/{folder_id}/MEDIAINFO.txt") == False and export_text != False:
-            console.print("[bold yellow]Exporting MediaInfo...")
+        video = os.path.normpath(video)
+        try:
+            if os.path.exists(f"{base_dir}/tmp/{folder_id}/MEDIAINFO.txt") == False and export_text != False:
+                console.print("[bold yellow]Exporting MediaInfo...")
             #MediaInfo to text
-            if isdir == False:
-                os.chdir(os.path.dirname(video))
-            media_info = MediaInfo.parse(video, output="STRING", full=False, mediainfo_options={'inform_version' : '1'})
-            with open(f"{base_dir}/tmp/{folder_id}/MEDIAINFO.txt", 'w', newline="", encoding='utf-8') as export:
+                if isdir == False:
+                    os.chdir(os.path.dirname(video))
+                media_info = MediaInfo.parse(video, output="STRING", full=False, mediainfo_options={'inform_version' : '1'})
+                with open(f"{base_dir}/tmp/{folder_id}/MEDIAINFO.txt", 'w', newline="", encoding='utf-8') as export:
+                    export.write(media_info)
+                    export.close()
+                with open(f"{base_dir}/tmp/{folder_id}/MEDIAINFO_CLEANPATH.txt", 'w', newline="", encoding='utf-8') as export_cleanpath:
+                    export_cleanpath.write(media_info.replace(video, os.path.basename(video)))
+                    export_cleanpath.close()
+                console.print("[bold green]MediaInfo Exported.")
+
+            if os.path.exists(f"{base_dir}/tmp/{folder_id}/MediaInfo.json.txt") == False:
+                #MediaInfo to JSON
+                media_info = MediaInfo.parse(video, output="JSON", mediainfo_options={'inform_version' : '1'})
+                export = open(f"{base_dir}/tmp/{folder_id}/MediaInfo.json", 'w', encoding='utf-8')
                 export.write(media_info)
                 export.close()
-            with open(f"{base_dir}/tmp/{folder_id}/MEDIAINFO_CLEANPATH.txt", 'w', newline="", encoding='utf-8') as export_cleanpath:
-                export_cleanpath.write(media_info.replace(video, os.path.basename(video)))
-                export_cleanpath.close()
-            console.print("[bold green]MediaInfo Exported.")
-
-        if os.path.exists(f"{base_dir}/tmp/{folder_id}/MediaInfo.json.txt") == False:
-            #MediaInfo to JSON
-            media_info = MediaInfo.parse(video, output="JSON", mediainfo_options={'inform_version' : '1'})
-            export = open(f"{base_dir}/tmp/{folder_id}/MediaInfo.json", 'w', encoding='utf-8')
-            export.write(media_info)
-            export.close()
-        with open(f"{base_dir}/tmp/{folder_id}/MediaInfo.json", 'r', encoding='utf-8') as f:
-            mi = json.load(f)
+            with open(f"{base_dir}/tmp/{folder_id}/MediaInfo.json", 'r', encoding='utf-8') as f:
+                mi = json.load(f)
         
-        return mi
+            return mi
 
-
-
+        except FileNotFoundError:
+            console.print(f"[bold red]File not found: {video}")
+            sys.exit() 
 
     """
     Get Resolution
@@ -552,13 +557,6 @@ class Prep():
             console.print("[yellow]SRRDB: No match found, or request has timed out")
         return video, scene, imdb
 
-
-
-
-
-
-
-
     """
     Generate Screenshots
     """
@@ -602,71 +600,77 @@ class Prep():
                 else:
                     loglevel = 'quiet'
                     debug = True
+                retake = False    
                 with Progress(
-                        TextColumn("[bold green]Saving Screens..."),
-                        BarColumn(),
-                        "[cyan]{task.completed}/{task.total}",
-                        TimeRemainingColumn()
-                    ) as progress:
-                    screen_task = progress.add_task("[green]Saving Screens...", total=num_screens + 1)
+                    TextColumn("[bold green]Saving Screens..."),
+                    BarColumn(),
+                    "[cyan]{task.completed}/{task.total}",
+                    TimeRemainingColumn()
+                ) as progress:
+                    screen_task = progress.add_task("[green]Saving Screens...", total=num_screens)
                     ss_times = []
-                    for i in range(num_screens + 1):
-                        image = f"{base_dir}/tmp/{folder_id}/{filename}-{i}.png"
-                        try:
-                            ss_times = self.valid_ss_time(ss_times, num_screens+1, length)
-                            (
-                                ffmpeg
-                                .input(file, ss=ss_times[-1], skip_frame=keyframe)
-                                .output(image, vframes=1, pix_fmt="rgb24")
-                                .overwrite_output()
-                                .global_args('-loglevel', loglevel)
-                                .run(quiet=debug)
-                            )
-                        except Exception:
-                            console.print(traceback.format_exc())
-                        
-                        self.optimize_images(image)
-                        if os.path.getsize(Path(image)) <= 31000000 and self.img_host == "imgbb":
-                            i += 1
-                        elif os.path.getsize(Path(image)) <= 10000000 and self.img_host in ["imgbox", 'pixhost']:
-                            i += 1
-                        elif os.path.getsize(Path(image)) <= 75000:
-                            console.print("[bold yellow]Image is incredibly small, retaking")
-                            time.sleep(1)
-                        elif self.img_host == "ptpimg":
-                            i += 1
-                        elif self.img_host == "lensdump":
-                            i += 1
+                    smallest_image_path = None
+                    smallest_image_size = float('inf')
+
+                    for _ in range(num_screens):
+                        image_path = f"{base_dir}/tmp/{folder_id}/{filename}-{i}.png"
+                        if not os.path.exists(image_path) or retake:                       
+                            try:
+                                ss_times = self.valid_ss_time(ss_times, num_screens, length)
+                                (
+                                    ffmpeg
+                                    .input(file, ss=ss_times[-1], skip_frame=keyframe)
+                                    .output(image_path, vframes=1, pix_fmt="rgb24")
+                                    .overwrite_output()
+                                    .global_args('-loglevel', loglevel)
+                                    .run(quiet=debug)
+                                )
+                            except Exception:
+                                console.print(traceback.format_exc())
+                            
+                            self.optimize_images(image_path)
+                            if os.path.getsize(Path(image_path)) <= 75000:
+                                console.print("[bold yellow]Image is incredibly small, retaking")
+                                time.sleep(1)                            
+                            elif os.path.getsize(Path(image_path)) <= 31000000 and self.img_host == "imgbb":
+                                i += 1
+                            elif os.path.getsize(Path(image_path)) <= 10000000 and self.img_host in ["imgbox", "pixhost", "ptscreens", "oeimg" ]:
+                                i += 1
+                            elif self.img_host in ["ptpimg", "lensdump"] and not retake:
+                                i += 1
+                            elif retake:
+                                pass                               
+                            else:
+                                console.print("[red]Image too large for your image host, retaking")
+                                time.sleep(1)
                         else:
-                            console.print("[red]Image too large for your image host, retaking")
-                            time.sleep(1)
+                            screenshot_size = os.path.getsize(image_path)
+                            if screenshot_size < smallest_image_size:
+                                smallest_image_size = screenshot_size
+                                smallest_image_path = image_path
+
+                        i += 1
                         progress.advance(screen_task)
-                #remove smallest image
-                smallest = ""
-                smallestsize = 99 ** 99
-                for screens in glob.glob1(f"{base_dir}/tmp/{folder_id}/", f"{filename}-*"): 
-                    screensize = os.path.getsize(screens)
-                    if screensize < smallestsize:
-                        smallestsize = screensize
-                        smallest = screens
-                os.remove(smallest)       
+                        
+                    # Remove the smallest image
+                    if smallest_image_path:
+                        os.remove(smallest_image_path)
         
     def dvd_screenshots(self, meta, disc_num, num_screens=None):
-        if num_screens == None:
+        if num_screens is None:
             num_screens = self.screens
         if num_screens == 0 or (len(meta.get('image_list', [])) >= num_screens and disc_num == 0):
             return
-        ifo_mi = MediaInfo.parse(f"{meta['discs'][disc_num]['path']}/VTS_{meta['discs'][disc_num]['main_set'][0][:2]}_0.IFO", mediainfo_options={'inform_version' : '1'})
+        ifo_mi = MediaInfo.parse(f"{meta['discs'][disc_num]['path']}/VTS_{meta['discs'][disc_num]['main_set'][0][:2]}_0.IFO", mediainfo_options={'inform_version': '1'})
         sar = 1
         for track in ifo_mi.tracks:
             if track.track_type == "Video":
-                length = float(track.duration)/1000
+                length = float(track.duration) / 1000
                 par = float(track.pixel_aspect_ratio)
                 dar = float(track.display_aspect_ratio)
                 width = float(track.width)
                 height = float(track.height)
         if par < 1:
-            # multiply that dar by the height and then do a simple width / height
             new_height = dar * height
             sar = width / new_height
             w_sar = 1
@@ -675,7 +679,7 @@ class Prep():
             sar = par
             w_sar = sar
             h_sar = 1
-        
+
         main_set_length = len(meta['discs'][disc_num]['main_set'])
         if main_set_length >= 3:
             main_set = meta['discs'][disc_num]['main_set'][1:-1]
@@ -685,82 +689,93 @@ class Prep():
             main_set = meta['discs'][disc_num]['main_set']
         n = 0
         os.chdir(f"{meta['base_dir']}/tmp/{meta['uuid']}")
-        i = 0        
-        if len(glob.glob(f"{meta['base_dir']}/tmp/{meta['uuid']}/{meta['discs'][disc_num]['name']}-*.png")) >= num_screens:
+        i = 0
+        existing_screenshots = glob.glob(f"{meta['base_dir']}/tmp/{meta['uuid']}/{meta['discs'][disc_num]['name']}-*.png")
+
+        if len(existing_screenshots) >= num_screens:
             i = num_screens
             console.print('[bold green]Reusing screenshots')
         else:
-            if bool(meta.get('ffdebug', False)) == True:
+            if meta.get('ffdebug', False):
                 loglevel = 'verbose'
                 debug = False
             looped = 0
             retake = False
             with Progress(
-                    TextColumn("[bold green]Saving Screens..."),
-                    BarColumn(),
-                    "[cyan]{task.completed}/{task.total}",
-                    TimeRemainingColumn()
-                ) as progress:
-                    screen_task = progress.add_task("[green]Saving Screens...", total=num_screens + 1)
-                    ss_times = []
-                    for i in range(num_screens + 1):
-                        if n >= len(main_set):
-                            n = 0
-                        if n >= num_screens:
-                            n -= num_screens
-                        image = f"{meta['base_dir']}/tmp/{meta['uuid']}/{meta['discs'][disc_num]['name']}-{i}.png"
-                        if not os.path.exists(image) or retake != False:
+                TextColumn("[bold green]Saving Screens..."),
+                BarColumn(),
+                "[cyan]{task.completed}/{task.total}",
+                TimeRemainingColumn()
+            ) as progress:
+                screen_task = progress.add_task("[green]Saving Screens...", total=num_screens)
+                ss_times = []
+                smallest_image_path = None
+                smallest_image_size = float('inf')
+                for i in range(num_screens):
+                    if n >= len(main_set):
+                        n = 0
+                    if n >= num_screens:
+                        n -= num_screens
+                    image = f"{meta['base_dir']}/tmp/{meta['uuid']}/{meta['discs'][disc_num]['name']}-{i}.png"
+                    if not os.path.exists(image) or retake:
+                        try:
                             retake = False
                             loglevel = 'quiet'
                             debug = True
                             if bool(meta.get('debug', False)):
                                 loglevel = 'error'
                                 debug = False
-                            def _is_vob_good(n, loops, num_screens):
+                            def _is_vob_good(n, num_screens):
                                 voblength = 300
-                                vob_mi = MediaInfo.parse(f"{meta['discs'][disc_num]['path']}/VTS_{main_set[n]}", output='JSON')
-                                vob_mi = json.loads(vob_mi)
-                                try:
-                                    voblength = float(vob_mi['media']['track'][1]['Duration'])
-                                    return voblength, n
-                                except Exception:
+                                loops = 0
+                                while loops < 6:
+                                    vob_mi = MediaInfo.parse(f"{meta['discs'][disc_num]['path']}/VTS_{main_set[n]}", output='JSON')
+                                    vob_mi = json.loads(vob_mi)
                                     try:
-                                        voblength = float(vob_mi['media']['track'][2]['Duration'])
+                                        voblength = float(vob_mi['media']['track'][1]['Duration'])
                                         return voblength, n
                                     except Exception:
-                                        n += 1
-                                        if n >= len(main_set):
-                                            n = 0
-                                        if n >= num_screens:
-                                            n -= num_screens
-                                        if loops < 6:
-                                            loops = loops + 1
-                                            voblength, n = _is_vob_good(n, loops, num_screens)
+                                        try:
+                                            voblength = float(vob_mi['media']['track'][2]['Duration'])
                                             return voblength, n
-                                        else:
-                                            return 300, n
+                                        except Exception:
+                                            n += 1
+                                            if n >= len(main_set):
+                                                n = 0
+                                            if n >= num_screens:
+                                                n -= num_screens
+                                            loops += 1
+                                return 300, n
+
                             try:
-                                voblength, n = _is_vob_good(n, 0, num_screens)
-                                img_time = random.randint(round(voblength/5) , round(voblength - voblength/5))
-                                ss_times = self.valid_ss_time(ss_times, num_screens+1, voblength)
-                                ff = ffmpeg.input(f"{meta['discs'][disc_num]['path']}/VTS_{main_set[n]}", ss=ss_times[-1])
+                                voblength, n = _is_vob_good(n, num_screens)
+                                m = i
+                                min_time = 0.01 * voblength
+                                base_time = max(min_time, random.randint(round(voblength / 5), round(voblength - voblength / 5)))
+                                while True:
+                                    img_time = max(min_time, base_time / (2 ** m) + random.uniform(0, 20))
+                                    if img_time < voblength:
+                                        break
+                                ff = ffmpeg.input(f"{meta['discs'][disc_num]['path']}/VTS_{main_set[n]}", ss=img_time)
                                 if w_sar != 1 or h_sar != 1:
-                                    ff = ff.filter('scale', int(round(width * w_sar)), int(round(height * h_sar)))
+                                    ff = ff.filter('scale', int(round(width * w_sar)), int(round(height * h_sar))) 
                                 (
                                     ff
                                     .output(image, vframes=1, pix_fmt="rgb24")
                                     .overwrite_output()
                                     .global_args('-loglevel', loglevel)
                                     .run(quiet=debug)
-                                )
+                                )                           
                             except Exception:
                                 console.print(traceback.format_exc())
+
                             self.optimize_images(image)
                             n += 1
-                            try: 
+
+                            try:
                                 if os.path.getsize(Path(image)) <= 31000000 and self.img_host == "imgbb":
                                     i += 1
-                                elif os.path.getsize(Path(image)) <= 10000000 and self.img_host in ["imgbox", 'pixhost']:
+                                elif os.path.getsize(Path(image)) <= 10000000 and self.img_host in ["imgbox", 'pixhost', "ptscreens", "oeimg"]:
                                     i += 1
                                 elif os.path.getsize(Path(image)) <= 75000:
                                     console.print("[yellow]Image is incredibly small (and is most likely to be a single color), retaking")
@@ -780,27 +795,32 @@ class Prep():
                                     console.print('[red]Failed to take screenshots')
                                     exit()
                                 looped += 1
-                        progress.advance(screen_task)
-            #remove smallest image
-            smallest = ""
-            smallestsize = 99**99
-            for screens in glob.glob1(f"{meta['base_dir']}/tmp/{meta['uuid']}/", f"{meta['discs'][disc_num]['name']}-*"): 
-                screensize = os.path.getsize(screens)
-                if screensize < smallestsize:
-                    smallestsize = screensize
-                    smallest = screens
-            os.remove(smallest)
+
+                            progress.advance(screen_task)
+
+                        except Exception:
+                            pass
+                    else:
+                        screenshot_size = os.path.getsize(image)
+                        if screenshot_size < smallest_image_size:
+                            smallest_image_size = screenshot_size
+                            smallest_image_path = image
+
+                    i += 1
+
+            # Remove the smallest image
+            if smallest_image_path:
+                os.remove(smallest_image_path)
 
     def screenshots(self, path, filename, folder_id, base_dir, meta, num_screens=None):
-        if num_screens == None:
+        if num_screens is None:
             num_screens = self.screens - len(meta.get('image_list', []))
-        if num_screens == 0: 
-        # or len(meta.get('image_list', [])) >= num_screens:
+        if num_screens == 0:
             return
         with open(f"{base_dir}/tmp/{folder_id}/MediaInfo.json", encoding='utf-8') as f:
             mi = json.load(f)
             video_track = mi['media']['track'][1]
-            length = video_track.get('Duration', mi['media']['track'][0]['Duration'])
+            length = float(video_track.get('Duration', mi['media']['track'][0]['Duration']))
             width = float(video_track.get('Width'))
             height = float(video_track.get('Height'))
             par = float(video_track.get('PixelAspectRatio', 1))
@@ -816,7 +836,7 @@ class Prep():
             else:
                 sar = w_sar = par 
                 h_sar = 1
-            length = round(float(length))
+            length = round(length)
             os.chdir(f"{base_dir}/tmp/{folder_id}")
             i = 0
             if len(glob.glob(f"{filename}-*.png")) >= num_screens:
@@ -825,10 +845,10 @@ class Prep():
             else:
                 loglevel = 'quiet'
                 debug = True
-                if bool(meta.get('ffdebug', False)) == True:
+                if bool(meta.get('ffdebug', False)):
                     loglevel = 'verbose'
                     debug = False
-                if meta.get('vapoursynth', False) == True:
+                if meta.get('vapoursynth', False):
                     from src.vs import vs_screengn
                     vs_screengn(source=path, encode=None, filter_b_frames=False, num=num_screens, dir=f"{base_dir}/tmp/{folder_id}/")
                 else:
@@ -840,86 +860,102 @@ class Prep():
                         TimeRemainingColumn()
                     ) as progress:
                         ss_times = []
-                        screen_task = progress.add_task("[green]Saving Screens...", total=num_screens + 1)
-                        for i in range(num_screens + 1):
-                            image = os.path.abspath(f"{base_dir}/tmp/{folder_id}/{filename}-{i}.png")
-                            if not os.path.exists(image) or retake != False:
-                                retake = False
+                        screen_task = progress.add_task("[green]Saving Screens...", total=num_screens)
+                        smallest_image_path = None
+                        smallest_image_size = float('inf')
+                        
+                        for _ in range(num_screens):
+                            image_path = os.path.abspath(f"{base_dir}/tmp/{folder_id}/{filename}-{i}.png")
+                            
+                            if not os.path.exists(image_path) or retake:
                                 try:
-                                    ss_times = self.valid_ss_time(ss_times, num_screens+1, length)
+                                    ss_times = self.valid_ss_time(ss_times, num_screens, length)
                                     ff = ffmpeg.input(path, ss=ss_times[-1])
                                     if w_sar != 1 or h_sar != 1:
                                         ff = ff.filter('scale', int(round(width * w_sar)), int(round(height * h_sar)))
                                     (
                                         ff
-                                        .output(image, vframes=1, pix_fmt="rgb24")
+                                        .output(image_path, vframes=1, pix_fmt="rgb24")
                                         .overwrite_output()
                                         .global_args('-loglevel', loglevel)
                                         .run(quiet=debug)
                                     )
-                                except Exception:
-                                    console.print(traceback.format_exc())
-    
-                                self.optimize_images(image)
-                                if os.path.getsize(Path(image)) <= 75000:
-                                    console.print("[yellow]Image is incredibly small, retaking")
-                                    retake = True
-                                    time.sleep(1)
-                                if os.path.getsize(Path(image)) <= 31000000 and self.img_host == "imgbb" and retake == False:
-                                    i += 1
-                                elif os.path.getsize(Path(image)) <= 10000000 and self.img_host in ["imgbox", 'pixhost'] and retake == False:
-                                    i += 1
-                                elif self.img_host in ["ptpimg", "lensdump"] and retake == False:
-                                    i += 1
-                                elif self.img_host == "freeimage.host":
-                                    console.print("[bold red]Support for freeimage.host has been removed. Please remove from your config")
-                                    exit()
-                                elif retake == True:
-                                    pass
-                                else:
-                                    console.print("[red]Image too large for your image host, retaking")
-                                    retake = True
-                                    time.sleep(1) 
+                                except Exception as e:
+                                    console.print(Traceback.extract())
+                                    self.optimize_images(image_path)
+                                    if os.path.exists(image_path):
+                                        if os.path.getsize(Path(image_path)) <= 75000 or self.is_black_image(image_path):
+                                            console.print("[yellow]Image is incredibly small or black, retaking")
+                                            retake = True
+                                            os.remove(image_path)
+                                            time.sleep(1)
+                                        elif os.path.getsize(Path(image_path)) <= 31000000 and self.img_host == "imgbb" and not retake:
+                                            i += 1
+                                        elif os.path.getsize(Path(image_path)) <= 10000000 and self.img_host in ["imgbox", 'pixhost', "ptscreens", "oeimg"] and not retake:
+                                            i += 1
+                                        elif self.img_host in ["ptpimg", "lensdump"] and not retake:
+                                            i += 1
+                                        elif self.img_host == "freeimage.host":
+                                            console.print("[bold red]Support for freeimage.host has been removed. Please remove from your config")
+                                            exit()
+                                        elif retake:
+                                            pass
+                                        else:
+                                            console.print("[red]Image too large for your image host, retaking")
+                                            retake = True
+                                            os.remove(image_path)
+                                            time.sleep(1)
                             else:
-                                i += 1
-                            progress.advance(screen_task)
-                    #remove smallest image
-                    smallest = ""
-                    smallestsize = 99 ** 99
-                    for screens in glob.glob1(f"{base_dir}/tmp/{folder_id}/", f"{filename}-*"): 
-                        screensize = os.path.getsize(screens)
-                        if screensize < smallestsize:
-                            smallestsize = screensize
-                            smallest = screens
-                    os.remove(smallest)       
+                                screenshot_size = os.path.getsize(image_path)
+                                if screenshot_size < smallest_image_size:
+                                    smallest_image_size = screenshot_size
+                                    smallest_image_path = image_path
 
-    def valid_ss_time(self, ss_times, num_screens, length):
+                            i += 1
+                            progress.advance(screen_task)
+                            
+                        # Remove the smallest image
+                        if smallest_image_path:
+                            os.remove(smallest_image_path)
+    def is_black_image(image_path, threshold=0.98):
+        try:
+            command = [
+                'ffmpeg', '-i', image_path, '-vf', 
+                'blackdetect=d=0.1:pic_th=%f' % threshold, '-f', 'null', '-'
+            ]
+            result = subprocess.run(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+            return 'black_start' in result.stderr
+        except Exception as e:
+            console.print(f"[red]Error checking black image: {e}")
+            return False         
+        
+    def valid_ss_time(self, ss_times, num_screens, length, min_time_diff=10):
         valid_time = False
-        while valid_time != True:
+        while not valid_time:
             valid_time = True
-            if ss_times != []:
-                sst = random.randint(round(length/5), round(length/2))
+            if ss_times:
+                sst = random.randint(round(length / 5), round(length / 2))
+                tolerance = length / 10 / num_screens
                 for each in ss_times:
-                    tolerance = length / 10 / num_screens
-                    if abs(sst - each) <= tolerance:
+                    if abs(sst - each) <= tolerance or any(abs(sst - t) < min_time_diff for t in ss_times):
                         valid_time = False
-                if valid_time == True:
+                if valid_time:
                     ss_times.append(sst)
             else:
-                ss_times.append(random.randint(round(length/5), round(length/2)))
+                ss_times.append(random.randint(round(length / 5), round(length / 2)))
         return ss_times
 
     def optimize_images(self, image):
-        if self.config['DEFAULT'].get('optimize_images', True) == True:
+        if self.config['DEFAULT'].get('optimize_images', True):
             if os.path.exists(image):
                 try:
                     pyver = platform.python_version_tuple()
                     if int(pyver[0]) == 3 and int(pyver[1]) >= 7:
                         import oxipng 
-                    if os.path.getsize(image) >= 16000000:
+                    if os.path.getsize(image) >= 31000000:
                         oxipng.optimize(image, level=6)
                     else:
-                        oxipng.optimize(image, level=3)
+                        oxipng.optimize(image, level=1)
                 except:
                     pass
         return
@@ -960,7 +996,7 @@ class Prep():
         return category
 
     async def get_tmdb_from_imdb(self, meta, filename):
-        if meta.get('tmdb_manual') != None:
+        if meta.get('tmdb_manual') is not None:
             meta['tmdb'] = meta['tmdb_manual']
             return meta
         imdb_id = meta['imdb']
@@ -1000,7 +1036,7 @@ class Prep():
                 search.movie(query=filename, year=search_year)
             elif category == "TV":
                 search.tv(query=filename, first_air_date_year=search_year)
-            if meta.get('tmdb_manual') != None:
+            if meta.get('tmdb_manual') is not None:
                 meta['tmdb'] = meta['tmdb_manual']
             else:
                 meta['tmdb'] = search.results[0]['id']
@@ -1018,16 +1054,22 @@ class Prep():
                     category = "TV"
                 else:
                     category = "MOVIE"
+                
                 if attempted <= 1:
                     attempted += 1
                     meta = await self.get_tmdb_id(filename, search_year, meta, category, untouched_filename, attempted)
                 elif attempted == 2:
                     attempted += 1
-                    meta = await self.get_tmdb_id(anitopy.parse(guessit(untouched_filename, {"excludes" : ["country", "language"]})['title'])['anime_title'], search_year, meta, meta['category'], untouched_filename, attempted)
-                if meta['tmdb'] in (None, ""):
+                    parsed_title = anitopy.parse(guessit(untouched_filename, {"excludes": ["country", "language"]})['title'])['anime_title']
+                    meta = await self.get_tmdb_id(parsed_title, search_year, meta, meta['category'], untouched_filename, attempted)
+
+                if meta.get('tmdb') in (None, ""):
                     console.print(f"[red]Unable to find TMDb match for {filename}")
-                    if meta.get('mode', 'discord') == 'cli':
-                        tmdb_id = cli_ui.ask_string("Please enter tmdb id in this format: tv/12345 or movie/12345")
+                    if meta.get('unattended'):
+                        meta['tmdb_not_found'] = True
+                        return meta
+                    else:
+                        tmdb_id = Prompt.ask(f"Please enter tmdb id in this format: tv/12345 or movie/12345\n")
                         parser = Args(config=self.config)
                         meta['category'], meta['tmdb'] = parser.parse_tmdb_id(id=tmdb_id, category=meta.get('category'))
                         meta['tmdb_manual'] = meta['tmdb']
@@ -1053,10 +1095,28 @@ class Prep():
                     return meta
         if meta['category'] == "MOVIE":
             movie = tmdb.Movies(meta['tmdb'])
-            response = movie.info()
+            while True:  # Keep looping until a valid response is obtained
+                try:
+                    response = movie.info()
+                    break 
+                except HTTPError as e:
+                    if e.response.status_code == 404:
+                        console.print("[red]The TMDb ID you entered could not be found. Please make sure the ID is correct and try again.")
+                        tmdb_id = Prompt.ask(f"Please enter tmdb id in this format: tv/12345 or movie/12345\n")
+                        parser = Args(config=self.config)
+                        meta['category'], meta['tmdb'] = parser.parse_tmdb_id(id=tmdb_id, category=meta.get('category'))
+                        meta['tmdb_manual'] = meta['tmdb']
+                        movie = tmdb.Movies(meta['tmdb'])  # Update the movie object with the new TMDb ID
+                    else:
+                        raise
             meta['title'] = response['title']
             if response['release_date']:
-                meta['year'] = datetime.strptime(response['release_date'],'%Y-%m-%d').year
+                try:
+                    meta['year'] = datetime.strptime(response['release_date'],'%Y-%m-%d').year
+                    full_date = datetime.strptime(response['release_date'],'%Y-%m-%d')
+                    meta['full_date'] = full_date.strftime('%Y-%m-%d')
+                except Exception:
+                    meta['full_date'] = ""
             else:
                 console.print('[yellow]TMDB does not have a release date, using year from filename instead (if it exists)')
                 meta['year'] = meta['search_year']
@@ -1077,7 +1137,7 @@ class Prep():
                 videos = movie.videos()
                 for each in videos.get('results', []):
                     if each.get('site', "") == 'YouTube' and each.get('type', "") == "Trailer":
-                        meta['youtube'] = f"https://www.youtube.com/watch?v={each.get('key')}"
+                        meta['youtube'] = f"{each.get('key')}"
                         break
             except Exception:
                 console.print('[yellow]Unable to grab videos from TMDb.')
@@ -1091,6 +1151,7 @@ class Prep():
             meta['original_title'] = response.get('original_title', meta['title'])
             meta['keywords'] = self.get_keywords(movie)
             meta['genres'] = self.get_genres(response)
+            meta['adult'] = response['adult']
             meta['tmdb_directors'] = self.get_directors(movie)
             if meta.get('anime', False) == False:
                 meta['mal_id'], meta['aka'], meta['anime'] = self.get_anime(response, meta)
@@ -1103,7 +1164,12 @@ class Prep():
             response = tv.info()
             meta['title'] = response['name']
             if response['first_air_date']:
-                meta['year'] = datetime.strptime(response['first_air_date'],'%Y-%m-%d').year
+                try:
+                    meta['year'] = datetime.strptime(response['first_air_date'],'%Y-%m-%d').year
+                    full_date = datetime.strptime(response['first_air_date'],'%Y-%m-%d')
+                    meta['full_date'] = full_date.strftime('%Y-%m-%d')
+                except Exception:
+                    meta['full_date'] = ""
             else:
                 console.print('[yellow]TMDB does not have a release date, using year from filename instead (if it exists)')
                 meta['year'] = meta['search_year']
@@ -1124,7 +1190,7 @@ class Prep():
                 videos = tv.videos()
                 for each in videos.get('results', []):
                     if each.get('site', "") == 'YouTube' and each.get('type', "") == "Trailer":
-                        meta['youtube'] = f"https://www.youtube.com/watch?v={each.get('key')}"
+                        meta['youtube'] = f"{each.get('key')}"
                         break
             except Exception:
                 console.print('[yellow]Unable to grab videos from TMDb.')
@@ -1138,6 +1204,7 @@ class Prep():
             meta['original_title'] = response.get('original_name', meta['title'])
             meta['keywords'] = self.get_keywords(tv)
             meta['genres'] = self.get_genres(response)
+            meta['adult'] = response['adult']
             meta['tmdb_directors'] = self.get_directors(tv)
             meta['mal_id'], meta['aka'], meta['anime'] = self.get_anime(response, meta)
             meta['poster'] = response.get('poster_path', '')
@@ -1435,8 +1502,8 @@ class Prep():
             "E-AC-3": "DD+",
             "MLP FBA": "TrueHD",
             "FLAC": "FLAC",
-            "Opus": "OPUS",
-            "Vorbis": "VORBIS",
+            "Opus": "Opus",
+            "Vorbis": "Vorbis",
             "PCM": "LPCM",
 
             #BDINFO AUDIOS
@@ -1770,23 +1837,33 @@ class Prep():
             codec = "VP9"
         elif format == "VC-1":
             codec = "VC-1"
+        elif format == "AV1":
+            codec = "AV1" 
         if format_profile == 'High 10':
             profile = "Hi10P"
         else:
             profile = ""
-        video_encode = f"{profile} {codec}"
+        if profile and codec:
+            if profile != codec:
+                video_encode = f"{profile} {codec}"
+            else:
+                video_encode = codec
+        else:
+            video_encode = format
         video_codec = format
         if video_codec == "MPEG Video":
             video_codec = f"MPEG-{mi['media']['track'][1].get('Format_Version')}"
         return video_encode, video_codec, has_encode_settings, bit_depth
 
 
-    def get_edition(self, video, bdinfo, filelist, manual_edition):
+    def get_edition(self, title, video, bdinfo, filelist, manual_edition):
         if video.lower().startswith('dc'):
             video = video.replace('dc', '', 1)
         guess = guessit(video)
         tag = guess.get('release_group', 'NOGROUP')
         repack = ""
+        cut = ""
+        ratio = ""
         edition = ""
         if bdinfo != None:
             try:
@@ -1806,26 +1883,46 @@ class Prep():
 
         video = video.upper().replace('.', ' ').replace(tag, '').replace('-', '')
 
-        if "OPEN MATTE" in video:
-            edition = edition + "Open Matte"
+        cuts = {
+            "director cut": "Director's Cut",
+            "extended": "Extended",
+            "special edition": "Special Edition",
+            "unrated": "Unrated",
+            "uncut": "Uncut",
+            "super duper": "Super Duper Cut"
+        }
+        for key, value in cuts.items():
+            if key in video.lower():
+                cut = value
+
+        ratios = {"IMAX": "IMAX", "OPEN MATTE": "Open Matte", " MAR ": "MAR"}
+        for key, value in ratios.items():
+            if key in video.upper():
+                ratio = value
 
         if manual_edition != None:
             if isinstance(manual_edition, list):
                 manual_edition = " ".join(manual_edition)
             edition = str(manual_edition)
             
-        if " REPACK " in (video or edition) or "V2" in video:
+        if manual_edition is not None and ("AI" in manual_edition.upper() or "UPSCALE" in manual_edition.upper()):
+            manual_edition = " AI UPSCALE"              
+        if "AI" in edition.upper() or "UPSCALE" in edition.upper():
+            edition = "AI UPSCALE" 
+        if "AI" in video.upper() and "UPSCALE" in video.upper():
+            edition = "AI UPSCALE"            
+        if " REPACK " in (video or edition) or "[REPACK]" in video or "V2" in video:
             repack = "REPACK"
-        if " REPACK2 " in (video or edition) or "V3" in video:
+        if " REPACK2 " in (video or edition) or "[REPACK2]" in video or "V3" in video:
             repack = "REPACK2"
-        if " REPACK3 " in (video or edition) or "V4" in video:
+        if " REPACK3 " in (video or edition) or "[REPACK3]" in video or "V4" in video:
             repack = "REPACK3"
         if " PROPER " in (video or edition):
             repack = "PROPER"
         if " RERIP " in (video.upper() or edition):
             repack = "RERIP"
-        # if "HYBRID" in video.upper() and "HYBRID" not in title.upper():
-        #     edition = "Hybrid " + edition
+        if " HYBRID " in video.upper() and "HYBRID" not in title.upper():
+            edition = "Hybrid " + edition
         edition = re.sub(r"(REPACK\d?)?(RERIP)?(PROPER)?", "", edition, flags=re.IGNORECASE).strip()
         bad = ['internal', 'limited', 'retail']
 
@@ -1839,7 +1936,7 @@ class Prep():
         #     edition = edition + " 3D "
         # if edition == None or edition == None:
         #     edition = ""
-        return edition, repack
+        return edition, repack, cut, ratio
 
 
 
@@ -1862,17 +1959,17 @@ class Prep():
         if meta['is_disc']:
             include, exclude = "", ""
         else:
-            exclude = ["*.*", "*sample.mkv", "!sample*.*"] 
+            exclude = ["*.*", "*sample.mkv", "!sample*.*", "._*"] 
             include = ["*.mkv", "*.mp4", "*.ts"]
         torrent = Torrent(path,
             trackers = ["https://fake.tracker"],
-            source = "L4G",
+            source = "", #unstamped for easy storage finding for reuse via hash
             private = True,
             exclude_globs = exclude or [],
             include_globs = include or [],
             creation_date = datetime.now(),
-            comment = "Created by L4G's Upload Assistant",
-            created_by = "L4G's Upload Assistant")
+            comment = "Created by UTOPIA Upload Assistant",
+            created_by = "UTOPIA Upload Assistant")
         file_size = torrent.size
         if file_size < 268435456: # 256 MiB File / 256 KiB Piece Size
             piece_size = 18
@@ -1926,8 +2023,19 @@ class Prep():
 
     
     def torf_cb(self, torrent, filepath, pieces_done, pieces_total):
-        # print(f'{pieces_done/pieces_total*100:3.0f} % done')
-        cli_ui.info_progress("Hashing...", pieces_done, pieces_total)
+        if not hasattr(self, 'progress'):
+            self.progress = Progress(
+                "[progress.description]{task.description}",
+                BarColumn(),
+                "[progress.percentage]{task.percentage:>3.1f}%",
+                TimeRemainingColumn(),
+            )
+            self.task = self.progress.add_task("Hashing...", total=pieces_total)
+            self.progress.start()
+        self.progress.update(self.task, completed=pieces_done)
+        if pieces_done >= pieces_total:
+            self.progress.stop()
+            del self.progress
 
     def create_random_torrents(self, base_dir, uuid, num, path):
         manual_name = re.sub(r"[^0-9a-zA-Z\[\]\'\-]+", ".", os.path.basename(path))
@@ -1942,8 +2050,8 @@ class Prep():
             base_torrent = Torrent.read(torrentpath)
             base_torrent.creation_date = datetime.now()
             base_torrent.trackers = ['https://fake.tracker']
-            base_torrent.comment = "Created by L4G's Upload Assistant"
-            base_torrent.created_by = "Created by L4G's Upload Assistant"
+            base_torrent.comment = "Created by UTOPIA Upload Assistant"
+            base_torrent.created_by = "Created by UTOPIA Upload Assistant"
             #Remove Un-whitelisted info from torrent
             for each in list(base_torrent.metainfo['info']):
                 if each not in ('files', 'length', 'name', 'piece length', 'pieces', 'private', 'source'):
@@ -1951,7 +2059,7 @@ class Prep():
             for each in list(base_torrent.metainfo):
                 if each not in ('announce', 'comment', 'creation date', 'created by', 'encoding', 'info'):
                     base_torrent.metainfo.pop(each, None)
-            base_torrent.source = 'L4G'
+            base_torrent.source = '' #unstamped for easy storage finding for reuse via hash
             base_torrent.private = True
             Torrent.copy(base_torrent).write(f"{base_dir}/tmp/{uuid}/BASE.torrent", overwrite=True)
 
@@ -1962,15 +2070,15 @@ class Prep():
     Upload Screenshots
     """
     def upload_screens(self, meta, screens, img_host_num, i, total_screens, custom_img_list, return_dict):
-        # if int(total_screens) != 0 or len(meta.get('image_list', [])) > total_screens:
-        #     if custom_img_list == []:
-        #         console.print('[yellow]Uploading Screens')   
+        if int(total_screens) != 0 or len(meta.get('image_list', [])) > total_screens:
+            if custom_img_list == []:
+                console.print('[yellow]Uploading Screens')   
         os.chdir(f"{meta['base_dir']}/tmp/{meta['uuid']}")
-        img_host = self.config['DEFAULT'][f'img_host_{img_host_num}']
-        if img_host != self.img_host and meta.get('imghost', None) == None:
+        img_host = self.config['DEFAULT'][f'img_host_{img_host_num}']  
+        if img_host != self.img_host and meta.get('imghost', None) == None: 
             img_host = self.img_host
             i -= 1
-        elif img_host_num == 1 and meta.get('imghost') != img_host:
+        if img_host_num == 1 and meta.get('imghost') != img_host:
             img_host = meta.get('imghost')
             img_host_num = 0
         image_list = []
@@ -2090,6 +2198,42 @@ class Prep():
                                 progress.console.print("[yellow]lensdump failed, trying next image host")
                                 progress.stop()
                                 newhost_list, i = self.upload_screens(meta, screens - i , img_host_num + 1, i, total_screens, [], return_dict)
+                        elif img_host == "oeimg":
+                            url = "https://imgoe.download/api/1/upload"
+                            data = {
+                                'key': self.config['DEFAULT']['oeimg_api'],
+                                'image': base64.b64encode(open(image, "rb").read()).decode('utf8')
+                            }
+                            try:
+                                response = requests.post(url, data = data,timeout=timeout)
+                                response = response.json()
+                                if response.get('status_code') != 200:
+                                    progress.console.print(response)
+                                img_url = response['data'].get('medium', response['data']['image'])['url']
+                                web_url = response['data']['url_viewer']
+                                raw_url = response['data']['image']['url']
+                            except Exception:
+                                progress.console.print("[yellow]oeimg failed, trying next image host")
+                                progress.stop()
+                                newhost_list, i = self.upload_screens(meta, screens - i , img_host_num + 1, i, total_screens, [], return_dict)                                
+                        elif img_host == "ptscreens":
+                            url = "https://ptscreens.com/api/1/upload"
+                            data = {
+                                'key': self.config['DEFAULT']['ptscreens_api'],
+                                'image': base64.b64encode(open(image, "rb").read()).decode('utf8')
+                            }
+                            try:
+                                response = requests.post(url, data = data,timeout=timeout)
+                                response = response.json()
+                                if response.get('status_code') != 200:
+                                    progress.console.print(response)
+                                img_url = response['data'].get('medium', response['data']['image'])['url']
+                                web_url = response['data']['url_viewer']
+                                raw_url = response['data']['image']['url']
+                            except Exception:
+                                progress.console.print("[yellow]PT Screens failed, trying next image host")
+                                progress.stop()
+                                newhost_list, i = self.upload_screens(meta, screens - i , img_host_num + 1, i, total_screens, [], return_dict)                          
                         else:
                             console.print("[bold red]Please choose a supported image host in your config")
                             exit()
@@ -2138,7 +2282,7 @@ class Prep():
         # keys contains props, that should be checked, and if empty, added back to meta as empty string ""
         keys = ['type', 'title', 'aka', 'year', 'resolution', 'audio', 'service',
         'season', 'episode', 'part', 'repack', '3D', 'tag', 'source',
-        'uhd', 'hdr', 'episode_title', 'video_codec', 'video_encode', 'edition', 'is_disc', 'region', 'dvd_size', 'search_year']
+        'uhd', 'hdr', 'episode_title', 'video_codec', 'video_encode', 'edition', 'is_disc', 'region', 'dvd_size', 'search_year', 'cut', 'ration']
         for key in keys:
             if key not in meta:
                 meta[key] = ""
@@ -2439,7 +2583,7 @@ class Prep():
         service = guessit(video).get('streaming_service', "")
         services = {
             '9NOW': '9NOW', '9Now': '9NOW','Animation Digital Network': 'ADN', 'ADN': 'ADN', 'AE': 'AE', 'A&E': 'AE', 'AJAZ': 'AJAZ', 'Al Jazeera English': 'AJAZ', 
-            'ALL4': 'ALL4', 'Channel 4': 'ALL4', 'AMBC': 'AMBC', 'ABC': 'AMBC', 'AMC': 'AMC', 'AMZN': 'AMZN', 
+            'ALL4': 'ALL4', 'Channel 4': 'ALL4', 'AMBC': 'AMBC', 'ABC': 'AMBC', 'AMC': 'AMC', 'AMZN': 'AMZN', 'Amazon': 'AMZN',
             'Amazon Prime': 'AMZN', 'ANLB': 'ANLB', 'AnimeLab': 'ANLB', 'ANPL': 'ANPL', 'Animal Planet': 'ANPL', 
             'AOL': 'AOL', 'ARD': 'ARD', 'AS': 'AS', 'Adult Swim': 'AS', 'ATK': 'ATK', "America's Test Kitchen": 'ATK', 
             'ATVP': 'ATVP', 'AppleTV': 'ATVP', 'AUBC': 'AUBC', 'ABC Australia': 'AUBC', 'BCORE': 'BCORE', 'BKPL': 'BKPL', 
@@ -2447,7 +2591,7 @@ class Prep():
             'BravoTV': 'BRAV', 'CBC': 'CBC', 'CBS': 'CBS', 'CC': 'CC', 'Comedy Central': 'CC', 'CCGC': 'CCGC', 
             'Comedians in Cars Getting Coffee': 'CCGC', 'CHGD': 'CHGD', 'CHRGD': 'CHGD', 'CMAX': 'CMAX', 'Cinemax': 'CMAX', 
             'CMOR': 'CMOR', 'CMT': 'CMT', 'Country Music Television': 'CMT', 'CN': 'CN', 'Cartoon Network': 'CN', 'CNBC': 'CNBC', 
-            'CNLP': 'CNLP', 'Canal+': 'CNLP', 'COOK': 'COOK', 'CORE': 'CORE', 'CR': 'CR', 'Crunchy Roll': 'CR', 'Crave': 'CRAV', 
+            'CNLP': 'CNLP', 'Canal+': 'CNLP', 'COOK': 'COOK', 'CORE': 'CORE', 'CR': 'CR', 'Crunchy Roll': 'CR', 'CRAVE': 'CRAV', 
             'CRIT': 'CRIT', 'Criterion' : 'CRIT', 'CRKL': 'CRKL', 'Crackle': 'CRKL', 'CSPN': 'CSPN', 'CSpan': 'CSPN', 'CTV': 'CTV', 'CUR': 'CUR', 
             'CuriosityStream': 'CUR', 'CW': 'CW', 'The CW': 'CW', 'CWS': 'CWS', 'CWSeed': 'CWS', 'DAZN': 'DAZN', 'DCU': 'DCU', 
             'DC Universe': 'DCU', 'DDY': 'DDY', 'Digiturk Diledigin Yerde': 'DDY', 'DEST': 'DEST', 'DramaFever': 'DF', 'DHF': 'DHF', 
@@ -2468,8 +2612,8 @@ class Prep():
             'NATG': 'NATG', 'National Geographic': 'NATG', 'NBA': 'NBA', 'NBA TV': 'NBA', 'NBC': 'NBC', 'NF': 'NF', 'Netflix': 'NF', 
             'National Film Board': 'NFB', 'NFL': 'NFL', 'NFLN': 'NFLN', 'NFL Now': 'NFLN', 'NICK': 'NICK', 'Nickelodeon': 'NICK', 'NRK': 'NRK', 
             'Norsk Rikskringkasting': 'NRK', 'OnDemandKorea': 'ODK', 'Opto': 'OPTO', 'Oprah Winfrey Network': 'OWN', 'PA': 'PA', 'PBS': 'PBS', 
-            'PBSK': 'PBSK', 'PBS Kids': 'PBSK', 'PCOK': 'PCOK', 'Peacock': 'PCOK', 'PLAY': 'PLAY', 'PLUZ': 'PLUZ', 'Pluzz': 'PLUZ', 'PMNP': 'PMNP', 
-            'PMNT': 'PMNT', 'PMTP' : 'PMTP', 'POGO': 'POGO', 'PokerGO': 'POGO', 'PSN': 'PSN', 'Playstation Network': 'PSN', 'PUHU': 'PUHU', 'QIBI': 'QIBI', 
+            'PBSK': 'PBSK', 'PBS Kids': 'PBSK', 'PCOK': 'PCOK', 'Peacock': 'PCOK', 'PLAY': 'PLAY','PlayerPL' : 'PL','Player-PL' : 'PL', 'player.pl' : 'PL', 'PLUZ': 'PLUZ', 'Pluzz': 'PLUZ', 'PMNP': 'PMNP', 
+            'Paramount': 'PMNT', 'PMNT': 'PMNT','Paramount+': 'PMTP', 'PMTP' : 'PMTP', 'POGO': 'POGO', 'PokerGO': 'POGO', 'PSN': 'PSN', 'Playstation Network': 'PSN', 'PUHU': 'PUHU', 'QIBI': 'QIBI', 
             'RED': 'RED', 'YouTube Red': 'RED', 'RKTN': 'RKTN', 'Rakuten TV': 'RKTN', 'The Roku Channel': 'ROKU', 'RSTR': 'RSTR', 'RTE': 'RTE', 
             'RTE One': 'RTE', 'RUUTU': 'RUUTU', 'SBS': 'SBS', 'Science Channel': 'SCI', 'SESO': 'SESO', 'SeeSo': 'SESO', 'SHMI': 'SHMI', 'Shomi': 'SHMI', 'SKST' : 'SKST', 'SkyShowtime': 'SKST',
             'SHO': 'SHO', 'Showtime': 'SHO', 'SNET': 'SNET', 'Sportsnet': 'SNET', 'Sony': 'SONY', 'SPIK': 'SPIK', 'Spike': 'SPIK', 'Spike TV': 'SPKE', 
@@ -2550,32 +2694,15 @@ class Prep():
     async def gen_desc(self, meta):
         desclink = meta.get('desclink', None)
         descfile = meta.get('descfile', None)
-        ptp_desc = blu_desc = ""
+        description_path = f"{meta['base_dir']}/tmp/{meta['uuid']}/DESCRIPTION.txt"
         desc_source = []
-        with open(f"{meta['base_dir']}/tmp/{meta['uuid']}/DESCRIPTION.txt", 'w', newline="", encoding='utf8') as description:
+        with open(description_path, 'w', newline="", encoding='utf8') as description:
             description.seek(0)
             if (desclink, descfile, meta['desc']) == (None, None, None):
-                if meta.get('ptp_manual') != None:
-                    desc_source.append('PTP')
-                if meta.get('blu_manual') != None:
-                    desc_source.append('BLU')
                 if len(desc_source) != 1:
                     desc_source = None
                 else:
                     desc_source = desc_source[0]
-
-                if meta.get('ptp', None) != None and str(self.config['TRACKERS'].get('PTP', {}).get('useAPI')).lower() == "true" and desc_source in ['PTP', None]:
-                    ptp = PTP(config=self.config)
-                    ptp_desc = await ptp.get_ptp_description(meta['ptp'], meta['is_disc'])
-                    if ptp_desc.replace('\r\n', '').replace('\n', '').strip() != "":
-                        description.write(ptp_desc)
-                        description.write("\n")
-                        meta['description'] = 'PTP'
-
-                if ptp_desc == "" and meta.get('blu_desc', '').rstrip() not in [None, ''] and desc_source in ['BLU', None]:
-                    if meta.get('blu_desc', '').strip().replace('\r\n', '').replace('\n', '') != '':
-                        description.write(meta['blu_desc'])
-                        meta['description'] = 'BLU'
 
             if meta.get('desc_template', None) != None:
                 from jinja2 import Template
@@ -2634,7 +2761,7 @@ class Prep():
                         else:
                             pass
                     elif key == 'personalrelease':
-                        meta[key] = bool(str2bool(str(value.get(key, 'False'))))
+                        meta[key] = bool(value.get(key, False))
                     elif key == 'template':
                         meta['desc_template'] = value.get(key)
                     else:
@@ -2796,6 +2923,7 @@ class Prep():
         if int(str(imdbID).replace('tt', '')) != 0:
             ia = Cinemagoer()
             info = ia.get_movie(imdbID)
+            ia.update(info, ['technical'])
             imdb_info['title'] = info.get('title')
             imdb_info['year'] = info.get('year')
             imdb_info['aka'] = info.get('original title', info.get('localized title', imdb_info['title'])).replace(' - IMDb', '')
@@ -2805,6 +2933,7 @@ class Prep():
             imdb_info['cover'] = info.get('full-size cover url', '').replace(".jpg", "._V1_FMjpg_UX750_.jpg")
             imdb_info['plot'] = info.get('plot', [''])[0]
             imdb_info['genres'] = ', '.join(info.get('genres', ''))
+            imdb_info['soundmix'] = info.get('sound mix')
             imdb_info['original_language'] = info.get('language codes')
             if isinstance(imdb_info['original_language'], list):
                 if len(imdb_info['original_language']) > 1:
