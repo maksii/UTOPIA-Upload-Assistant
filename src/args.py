@@ -48,7 +48,7 @@ class Args():
         parser.add_argument('-d', '--desc', nargs='*', required=False, help=r'\"[b]Custom Description[/b]\"')
         parser.add_argument('-pb', '--desclink', nargs='*', required=False, help=r'\"https://pastebin.com/URL\"')
         parser.add_argument('-df', '--descfile', nargs='*', required=False, help=r'\"\path\to\description.txt\"')
-        parser.add_argument('-ih', '--imghost', nargs='*', required=False, help="Image Host", choices=['imgbb', 'ptpimg', 'imgbox', 'pixhost', 'lensdump'])
+        parser.add_argument('-ih', '--imghost', nargs='*', required=False, help="Image Host", choices=['utppm', 'imgbb', 'ptpimg', 'imgbox', 'pixhost', 'lensdump'])
         parser.add_argument('-siu', '--skip-imagehost-upload', dest='skip_imghost_upload', action='store_true', required=False, help="Skip Uploading to an image host")
         parser.add_argument('-th', '--torrenthash', nargs='*', required=False, help="Torrent Hash to re-use from your client's session directory")
         parser.add_argument('-nfo', '--nfo', action='store_true', required=False, help="Use .nfo in directory for description")

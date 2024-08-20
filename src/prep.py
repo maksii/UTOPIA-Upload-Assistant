@@ -2233,7 +2233,27 @@ class Prep():
                             except Exception:
                                 progress.console.print("[yellow]PT Screens failed, trying next image host")
                                 progress.stop()
-                                newhost_list, i = self.upload_screens(meta, screens - i , img_host_num + 1, i, total_screens, [], return_dict)                          
+                                newhost_list, i = self.upload_screens(meta, screens - i , img_host_num + 1, i, total_screens, [], return_dict)
+                        elif img_host == "utppm":
+                            url = "https://utp.pm/api/1/upload"
+                            data = {
+                                'source': base64.b64encode(open(image, "rb").read()).decode('utf8')
+                            }
+                            headers = {
+                                'X-API-Key': self.config['DEFAULT']['utppm_api'],
+                            }
+                            try:
+                                response = requests.post(url, data=data, headers=headers, timeout=timeout)
+                                response = response.json()
+                                if response.get('status_code') != 200:
+                                    progress.console.print(response)
+                                img_url = response.get('medium', response['image'])['url']
+                                web_url = response['image']['url_viewer']
+                                raw_url = response['image']['url']
+                            except Exception:
+                                progress.console.print("[yellow]utp.pm failed, trying next image host")
+                                progress.stop()
+                                newhost_list, i = self.upload_screens(meta, screens - i, img_host_num + 1, i, total_screens, [], return_dict)                          
                         else:
                             console.print("[bold red]Please choose a supported image host in your config")
                             exit()
