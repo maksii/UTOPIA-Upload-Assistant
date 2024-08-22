@@ -74,7 +74,7 @@ class UTOPIA():
         if distributor_id != 0:
             data['distributor_id'] = distributor_id
         if meta.get('category') == "TV":
-            data['season_number'] = meta.get('season_int', '0')
+            data['season_number'] = str(int(meta.get('season_int', '0')))
             data['episode_number'] = meta.get('episode_int', '0')
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:53.0) Gecko/20100101 Firefox/53.0'
@@ -92,7 +92,29 @@ class UTOPIA():
                 success = response_json.get('success', False)
                 data = response_json.get('data', {})
             except Exception as e:
-                console.print(f"[red]Encountered Error: {e}[/red]\n[bold yellow]May have uploaded, please go check..")
+                console.print(f"[red]Request Error: {e}[/red]")
+                try:
+                    # Attempt to parse the response text for error details
+                    error_details = json.loads(e.response.text)
+                    message = error_details.get('message', 'No message provided')
+                    data = error_details.get('data', {})
+                    
+                    # Construct a human-readable error message
+                    error_messages = []
+                    for field, errors in data.items():
+                        for error in errors:
+                            error_messages.append(f"{field}: {error}")
+                    
+                    # Print the detailed error message
+                    if error_messages:
+                        console.print(f"[bold yellow]Error Details:[/bold yellow] {message}\n" + "\n".join(error_messages))
+                    else:
+                        console.print(f"[bold yellow]Error Message:[/bold yellow] {message}")
+                except (ValueError, AttributeError, KeyError) as parse_error:
+                    # Handle cases where parsing the error response fails
+                    console.print(f"[bold yellow]Failed to parse error details:[/bold yellow] {parse_error}")
+                    console.print(f"[bold yellow]Response Text:[/bold yellow] {e.response.text}")
+                console.print("[bold yellow]May have uploaded, please go check..")
 
             if success == 'Unknown':
                 console.print("[bold yellow]Status of upload is unknown, please go check..")
