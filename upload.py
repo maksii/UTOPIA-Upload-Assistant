@@ -1,4 +1,3 @@
-import requests
 from src.args import Args
 from src.clients import Clients
 from src.prep import Prep
@@ -13,11 +12,6 @@ import re
 import platform
 import shutil
 import glob
-import subprocess
-import traceback
-import time
-import random
-from packaging.version import Version
 
 from src.console import console
 from rich.markdown import Markdown
@@ -26,18 +20,9 @@ from rich.prompt import Prompt, Confirm
 from rich.text import Text
 from rich.panel import Panel
 from rich.table import Table
-from rich.align import Align
 from rich.rule import Rule
-from rich.console import Group
-from rich.progress import Progress, TimeRemainingColumn
 from difflib import SequenceMatcher
 import bencodepy as bencode
-from urllib.parse import urlparse, parse_qs
-import importlib
-
-
-
-import traceback
 
 # Determine if the application is running as a frozen executable or as a script
 if getattr(sys, 'frozen', False):
@@ -223,13 +208,11 @@ async def do_the_thing(base_dir):
             trackers.insert(0, "MANUAL")
         
 
-
         ####################################
         #######  Upload to Trackers  #######
         ####################################
         common = COMMON(config=config)
         api_trackers = ['UTOPIA']
-        http_trackers = ['HDB', 'TTG', 'FL', 'PTER', 'HDT', 'MTV']
         tracker_class_map = {'UTOPIA' : UTOPIA}
 
         for tracker in trackers:
@@ -260,24 +243,6 @@ async def do_the_thing(base_dir):
                         if tracker == 'SN':
                             await asyncio.sleep(16)
                         await client.add_to_client(meta, tracker_class.tracker)
-            
-            if tracker in http_trackers:
-                tracker_class = tracker_class_map[tracker](config=config)
-                if meta['unattended']:
-                    upload_to_tracker = True
-                else:
-                    upload_to_tracker = Confirm.ask(f"Upload to {tracker_class.tracker}? {debug}", choices=["y", "N"])
-                if upload_to_tracker:
-                    console.print(f"Uploading to {tracker}")
-                    if check_banned_group(tracker_class.tracker, tracker_class.banned_groups, meta):
-                        continue
-                    if await tracker_class.validate_credentials(meta) == True:
-                        dupes = await tracker_class.search_existing(meta)
-                        dupes = await common.filter_dupes(dupes, meta)
-                        meta, skipped = dupe_check(dupes, meta)
-                        if meta['upload'] == True:
-                            await tracker_class.upload(meta)
-                            await client.add_to_client(meta, tracker_class.tracker)
 
             if tracker == "MANUAL":
                 if meta['unattended']:                
@@ -321,26 +286,28 @@ def get_confirmation(meta):
 
     console.print(Panel("\n".join(db_info), title="Database Info", border_style="bold yellow"))
     console.print()
-    if int(meta.get('freeleech', '0')) != 0:
-        console.print(f"[bold]Freeleech[/bold]: {meta['freeleech']}")
-    if meta['tag'] == "":
-            tag = ""
-    else:
-        tag = f" / {meta['tag'][1:]}"
-    if meta['is_disc'] == "DVD":
-        res = meta['source']
-    else:
-        res = meta['resolution']
 
-    console.print(Text(f" {res} / {meta['type']}{tag}", style="bold"))
+    tag = f"{meta['tag'][1:]}" if meta['tag'] else ""
+    res = meta['source'] if meta['is_disc'] == "DVD" else meta['resolution']
+    release_info = [
+            f"[bold]Type[/bold]: {meta['type']}",
+            f"[bold]Resolution[/bold]: {res}",
+            f"[bold]Release Group(tag)[/bold]: {tag}",
+        ]
+    
+    if int(meta.get('freeleech', '0')) != 0:
+        release_info.append(f"[bold]Freeleech[/bold]: {meta['freeleech']}")
+
     if meta.get('personalrelease', False) == True:
-        console.print("[bright_magenta]Personal Release!")
-    console.print()
+        release_info.append(f"[bright_magenta]Personal Release!")
+        
     if not meta.get('unattended', False):
         get_missing(meta)
         ring_the_bell = "\a" if config['DEFAULT'].get("sfx_on_prompt", True) == True else "" # \a rings the bell
+        release_info.append(f"[bold]Release Name[/bold]: [bright_magenta] {meta['name']}")
+        console.print(Panel("\n".join(release_info), title="Release Info", border_style="bold yellow"))
+        
         console.print(f"[bold yellow]Is this correct?{ring_the_bell}") 
-        console.print(f"[bold]Name[/bold]: {meta['name']}")
         confirm = Confirm.ask(" Correct?")
     else:
         console.print(f"[bold]Name[/bold]: {meta['name']}")
@@ -522,11 +489,8 @@ def main():
         asyncio.run(do_the_thing(base_dir))
 
 import asyncio
-import multiprocessing
 import platform
-from multiprocessing import set_start_method, freeze_support
+from multiprocessing import freeze_support
 if __name__ == '__main__':
     freeze_support()
-    #set_start_method('spawn')
     main()
-    

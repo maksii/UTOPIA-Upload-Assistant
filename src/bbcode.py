@@ -2,35 +2,6 @@ import re
 import html
 import urllib.parse
 
-# Bold - KEEP
-# Italic - KEEP
-# Underline - KEEP
-# Strikethrough - KEEP
-# Color - KEEP
-# URL - KEEP
-# PARSING - Probably not exist in uploads
-# Spoiler - KEEP
-
-# QUOTE - CONVERT to CODE
-# PRE - CONVERT to CODE
-# Hide - CONVERT to SPOILER
-# COMPARISON - CONVERT
-
-# LIST - REMOVE TAGS/REPLACE with * or something
-
-# Size - REMOVE TAGS
-
-# Align - REMOVE (ALL LEFT ALIGNED)
-# VIDEO - REMOVE
-# HR - REMOVE
-# MEDIAINFO - REMOVE
-# MOVIE - REMOVE
-# PERSON - REMOVE
-# USER - REMOVE
-# IMG - REMOVE?
-# INDENT - Probably not an issue, but maybe just remove tags
-
-
 class BBCODE:
     def __init__(self):
         pass
@@ -72,7 +43,6 @@ class BBCODE:
         elif any(x in is_disc for x in ["BDMV", "DVD"]):
             return ""
 
-
         # Convert Quote tags:
         desc = re.sub(r"\[quote.*?\]", "[code]", desc)
         desc = desc.replace("[/quote]", "[/code]")
@@ -91,7 +61,6 @@ class BBCODE:
         # Remove Staff tags
         desc = re.sub(r"\[staff[\s\S]*?\[\/staff\]", "", desc)
 
-
         #Remove Movie/Person/User/hr/Indent
         remove_list = [
             '[movie]', '[/movie]',
@@ -103,8 +72,8 @@ class BBCODE:
         ]
         for each in remove_list:
             desc = desc.replace(each, '')
-     
-       #Catch Stray Images
+            
+        #Catch Stray Images
         comps = re.findall(r"\[comparison=[\s\S]*?\[\/comparison\]", desc)
         hides = re.findall(r"\[hide[\s\S]*?\[\/hide\]", desc)
         comps.extend(hides)
@@ -116,7 +85,6 @@ class BBCODE:
             nocomp = nocomp.replace(comps[i], '')
             desc = desc.replace(comps[i], f"COMPARISON_PLACEHOLDER-{i} ")
             comp_placeholders.append(comps[i])
-
 
         # Remove Images in IMG tags:
         desc = re.sub(r"\[img\][\s\S]*?\[\/img\]", "", desc, flags=re.IGNORECASE)
@@ -146,7 +114,6 @@ class BBCODE:
             return ""
         return desc
 
-    
     def clean_unit3d_description(self, desc, site):
         # Unescape html
         desc = html.unescape(desc)
@@ -230,7 +197,6 @@ class BBCODE:
         desc = desc.replace('[/pre]', '[/code]')
         return desc
     
-
     def convert_hide_to_spoiler(self, desc):
         desc = desc.replace('[hide', '[spoiler')
         desc = desc.replace('[/hide]', '[/spoiler]')
@@ -254,7 +220,7 @@ class BBCODE:
         desc = desc.replace('[code', '[quote')
         desc = desc.replace('[/code]', '[/quote]')
         return desc
- 
+    
     def convert_comparison_to_collapse(self, desc, max_width):
         comparisons = re.findall(r"\[comparison=[\s\S]*?\[\/comparison\]", desc)
         for comp in comparisons:
@@ -279,7 +245,6 @@ class BBCODE:
             new_bbcode = f"[spoiler={' vs '.join(comp_sources)}][center]{' | '.join(comp_sources)}[/center]\n{output}[/spoiler]"
             desc = desc.replace(comp, new_bbcode)
         return desc
-
 
     def convert_comparison_to_centered(self, desc, max_width):
         comparisons = re.findall(r"\[comparison=[\s\S]*?\[\/comparison\]", desc)
@@ -311,7 +276,7 @@ class BBCODE:
         if collapses != []:
             for i in range(len(collapses)):
                 tag = collapses[i]
-                iimages = re.findall(r"\[img[\s\S]*?\[\/img\]", tag, flags=re.IGNORECASE)
+                images = re.findall(r"\[img[\s\S]*?\[\/img\]", tag, flags=re.IGNORECASE)
                 if len(images) >= 6:
                     comp_images = []
                     final_sources = []

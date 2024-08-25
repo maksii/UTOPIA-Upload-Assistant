@@ -1,6 +1,5 @@
 from torf import Torrent
 import os
-import traceback
 import requests
 import re
 import json
@@ -15,118 +14,115 @@ class COMMON():
         pass
 
     async def edit_torrent(self, meta, tracker, source_flag, torrent_filename="BASE"):
-        if os.path.exists(f"{meta['base_dir']}/tmp/{meta['uuid']}/{torrent_filename}.torrent"):
-            new_torrent = Torrent.read(f"{meta['base_dir']}/tmp/{meta['uuid']}/{torrent_filename}.torrent")
-            for each in list(new_torrent.metainfo):
-                if each not in ('announce', 'comment', 'creation date', 'created by', 'encoding', 'info'):
-                    new_torrent.metainfo.pop(each, None)
-            new_torrent.metainfo['announce'] = self.config['TRACKERS'][tracker].get('announce_url', "https://fake.tracker").strip()
-            new_torrent.metainfo['info']['source'] = source_flag
-            Torrent.copy(new_torrent).write(f"{meta['base_dir']}/tmp/{meta['uuid']}/[{tracker}]{meta['clean_name']}.torrent", overwrite=True)
+        torrent_path = f"{meta['base_dir']}/tmp/{meta['uuid']}/{torrent_filename}.torrent"
+        if os.path.exists(torrent_path):
+            new_torrent = Torrent.read(torrent_path)
 
-    # used to add tracker url, comment and source flag to torrent file
-    async def add_tracker_torrent(self, meta, tracker, source_flag, new_tracker, comment):
-        if os.path.exists(f"{meta['base_dir']}/tmp/{meta['uuid']}/BASE.torrent"):
-            new_torrent = Torrent.read(f"{meta['base_dir']}/tmp/{meta['uuid']}/BASE.torrent")
-            new_torrent.metainfo['announce'] = new_tracker
-            new_torrent.metainfo['comment'] = comment
+            # Remove unwanted metadata keys
+            keys_to_remove = set(new_torrent.metainfo) - {'announce', 'comment', 'creation date', 'created by', 'encoding', 'info'}
+            for key in keys_to_remove:
+                new_torrent.metainfo.pop(key, None)
+
+            # Update announce URL and source
+            announce_url = self.config['TRACKERS'][tracker].get('announce_url', "https://fake.tracker").strip()
+            new_torrent.metainfo['announce'] = announce_url
             new_torrent.metainfo['info']['source'] = source_flag
-            Torrent.copy(new_torrent).write(f"{meta['base_dir']}/tmp/{meta['uuid']}/[{tracker}]{meta['clean_name']}.torrent", overwrite=True)
-            
+
+            # Write the modified torrent file
+            output_path = f"{meta['base_dir']}/tmp/{meta['uuid']}/[{tracker}]{meta['clean_name']}.torrent"
+            Torrent.copy(new_torrent).write(output_path, overwrite=True)
+
+    async def add_tracker_torrent(self, meta, tracker, source_flag, new_tracker, comment):
+        torrent_path = f"{meta['base_dir']}/tmp/{meta['uuid']}/BASE.torrent"
+        if os.path.exists(torrent_path):
+            new_torrent = Torrent.read(torrent_path)
+
+            # Update announce URL, comment, and source
+            new_torrent.metainfo['announce'] = new_tracker.strip()
+            new_torrent.metainfo['comment'] = comment.strip()
+            new_torrent.metainfo['info']['source'] = source_flag
+
+            # Write the modified torrent file
+            output_path = f"{meta['base_dir']}/tmp/{meta['uuid']}/[{tracker}]{meta['clean_name']}.torrent"
+            Torrent.copy(new_torrent).write(output_path, overwrite=True)
+
     def generate_images_text(images, screen_count, size):
-       images_text = ""
-       for each in range(len(images[:screen_count])):
-           web_url = images[each]['web_url']
-           raw_url = images[each]['raw_url']
-           img_size = size
-           images_text += f"[url={web_url}][img={img_size}]{raw_url}[/img][/url]"
-       return images_text
-      
+        images_text = ""
+        for image in images[:screen_count]:
+            web_url = image['web_url']
+            raw_url = image['raw_url']
+            images_text += f"[url={web_url}][img={size}]{raw_url}[/img][/url]"
+        return images_text
     
     async def unit3d_edit_desc(self, meta, tracker, comparison=False, desc_header=""):
-        base = open(f"{meta['base_dir']}/tmp/{meta['uuid']}/DESCRIPTION.txt", 'r', encoding='utf8').read()
-        with open(f"{meta['base_dir']}/tmp/{meta['uuid']}/[{tracker}]DESCRIPTION.txt", 'w', encoding='utf8') as descfile:
-            if desc_header != "":
+        base_path = f"{meta['base_dir']}/tmp/{meta['uuid']}"
+        base_desc = open(f"{base_path}/DESCRIPTION.txt", 'r', encoding='utf8').read()
+
+        with open(f"{base_path}/[{tracker}]DESCRIPTION.txt", 'w', encoding='utf8') as descfile:
+            if desc_header:
                 descfile.write(desc_header)
-            
+
             bbcode = BBCODE()
-            if meta.get('discs', []) != []:
-                discs = meta['discs']
-                if discs[0]['type'] == "DVD":
-                    descfile.write(f"[spoiler=VOB MediaInfo][code]{discs[0]['vob_mi']}[/code][/spoiler]\n")
-                    descfile.write("\n")
-                if len(discs) >= 2:
-                    for each in discs[1:]:
-                        if each['type'] == "BDMV":
-                            descfile.write(f"[spoiler={each.get('name', 'BDINFO')}][code]{each['summary']}[/code][/spoiler]\n")
-                            descfile.write("\n")
-                        elif each['type'] == "DVD":
-                            descfile.write(f"{each['name']}:\n")
-                            descfile.write(f"[spoiler={os.path.basename(each['vob'])}][code][{each['vob_mi']}[/code][/spoiler] [spoiler={os.path.basename(each['ifo'])}][code][{each['ifo_mi']}[/code][/spoiler]\n")
-                            descfile.write("\n")
-                        elif each['type'] == "HDDVD":
-                            descfile.write(f"{each['name']}:\n")
-                            descfile.write(f"[spoiler={os.path.basename(each['largest_evo'])}][code][{each['evo_mi']}[/code][/spoiler]\n")
-                            descfile.write("\n")
-            desc = base
-            desc = bbcode.convert_pre_to_code(desc)
+            discs = meta.get('discs', [])
+
+            if discs:
+                first_disc = discs[0]
+                if first_disc['type'] == "DVD":
+                    descfile.write(f"[spoiler=VOB MediaInfo][code]{first_disc['vob_mi']}[/code][/spoiler]\n\n")
+
+                for each in discs[1:]:
+                    if each['type'] == "BDMV":
+                        descfile.write(f"[spoiler={each.get('name', 'BDINFO')}][code]{each['summary']}[/code][/spoiler]\n\n")
+                    elif each['type'] == "DVD":
+                        descfile.write(f"{each['name']}:\n")
+                        descfile.write(f"[spoiler={os.path.basename(each['vob'])}][code]{each['vob_mi']}[/code][/spoiler] [spoiler={os.path.basename(each['ifo'])}][code]{each['ifo_mi']}[/code][/spoiler]\n\n")
+                    elif each['type'] == "HDDVD":
+                        descfile.write(f"{each['name']}:\n")
+                        descfile.write(f"[spoiler={os.path.basename(each['largest_evo'])}][code]{each['evo_mi']}[/code][/spoiler]\n\n")
+
+            desc = bbcode.convert_pre_to_code(base_desc)
             desc = bbcode.convert_hide_to_spoiler(desc)
-            if comparison is False:
+            if not comparison:
                 desc = bbcode.convert_comparison_to_collapse(desc, 1000)
-        
+
             img_size = self.config["DEFAULT"].get("img_size", 500)
             inline_imgs = self.config["DEFAULT"].get("inline_imgs", 0)
-            desc = desc.replace('[img]', f"[img={img_size}]")
             images = meta['image_list']
             screen_count = int(meta['screens'])
 
             if '%SCREENS%' in desc:
                 images_text = COMMON.generate_images_text(images, screen_count, img_size)
                 desc = desc.replace('%SCREENS%', images_text)
-            else:
-                if len(images) > 0:
-                    desc += f"\n[center]"
-                    images_text = COMMON.generate_images_text(images, screen_count, img_size)
-                    desc += images_text
-                    if img_size and inline_imgs:
-                        try:
-                            inline_imgs = int(inline_imgs) 
-                            if each % inline_imgs == inline_imgs - 1:
-                                descfile.write("\n")
-                        except ValueError:
-                            print("[bold][red]WARN[/red]: Invalid value given for inline_imgs in config.[/bold]")
-                    desc += "[/center]"
-            descfile.write(desc)
-            
-            use_global_sigs = self.config["DEFAULT"].get("use_global_sigs", False)
-            if use_global_sigs:
-                signature = self.config["DEFAULT"].get("global_sig")
-                anon_signature = self.config["DEFAULT"].get("global_anon_sig")
-                pr_signature = self.config["DEFAULT"].get("global_pr_sig")
-                anon_pr_sig = self.config["DEFAULT"].get("global_anon_pr_sig")
-                if signature is None or anon_signature is None or pr_signature is None or anon_pr_sig is None:
-                    print("[bold][red]WARN[/red]: Global signatures are enabled but not provided in config.[/bold]")                
-            else:
-                signature = self.config["TRACKERS"][tracker].get("signature")
-                anon_signature = self.config["TRACKERS"][tracker].get("anon_signature")
-                pr_signature = self.config["TRACKERS"][tracker].get("pr_signature")
-                anon_pr_sig = self.config["TRACKERS"][tracker].get("anon_pr_signature")
-                if signature is None or anon_signature is None or pr_signature is None or anon_pr_sig is None:
-                    print("[bold][red]WARN[/red]: Global Signatures are turned off, but no signature is provided for selected tracker.[/bold]")
-                    
-        with open(f"{meta['base_dir']}/tmp/{meta['uuid']}/[{tracker}]DESCRIPTION.txt", 'a', encoding='utf8') as descfile:
-            if meta["personalrelease"]:
-                if meta["anon"] != 0 or self.config["TRACKERS"][tracker].get("anon", False):
-                    descfile.write("\n" + anon_pr_sig)
-                elif meta["anon"] == 0:
-                    descfile.write("\n" + pr_signature)
-            else:
-                if meta["anon"] != 0 or self.config["TRACKERS"][tracker].get("anon", False):
-                    descfile.write("\n" + anon_signature)
-                elif meta["anon"] == 0:
-                    descfile.write("\n" + signature)
+            elif images:
+                desc += "\n[center]"
+                images_text = COMMON.generate_images_text(images, screen_count, img_size)
+                desc += images_text
+                if img_size and inline_imgs:
+                    try:
+                        inline_imgs = int(inline_imgs)
+                        if len(images) % inline_imgs == inline_imgs - 1:
+                            desc += "\n"
+                    except ValueError:
+                        print("[bold][red]WARN[/red]: Invalid value given for inline_imgs in config.[/bold]")
+                desc += "[/center]"
 
-        return
+            descfile.write(desc)
+
+            use_global_sigs = self.config["DEFAULT"].get("use_global_sigs", False)
+            sig_config = self.config["DEFAULT"] if use_global_sigs else self.config["TRACKERS"][tracker]
+            signature = sig_config.get("global_sig" if use_global_sigs else "signature", "global_sig")
+            anon_signature = sig_config.get("global_anon_sig" if use_global_sigs else "anon_signature", "global_anon_sig")
+            pr_signature = sig_config.get("global_pr_sig" if use_global_sigs else "pr_signature", "global_pr_sig")
+            anon_pr_sig = sig_config.get("global_anon_pr_sig" if use_global_sigs else "anon_pr_signature", "global_anon_pr_sig")
+
+            if not all([signature, anon_signature, pr_signature, anon_pr_sig]):
+                print("[bold][red]WARN[/red]: Signatures are enabled but not provided in config.[/bold]")
+
+        with open(f"{base_path}/[{tracker}]DESCRIPTION.txt", 'a', encoding='utf8') as descfile:
+            if meta["personalrelease"]:
+                descfile.write("\n" + (anon_pr_sig if meta["anon"] or sig_config.get("anon", False) else pr_signature))
+            else:
+                descfile.write("\n" + (anon_signature if meta["anon"] or sig_config.get("anon", False) else signature))
     
     async def unit3d_region_ids(self, region):
         region_id = {
@@ -193,12 +189,15 @@ class COMMON():
     async def unit3d_torrent_info(self, tracker, torrent_url, id):
         tmdb = imdb = tvdb = description = category = infohash = mal = None
         imagelist = []
-        params = {'api_token' : self.config['TRACKERS'][tracker].get('api_key', '')}
+        params = {'api_token': self.config['TRACKERS'][tracker].get('api_key', '')}
         url = f"{torrent_url}{id}"
-        response = requests.get(url=url, params=params)
+
         try:
-            response = response.json()
-            attributes = response['attributes']
+            response = requests.get(url=url, params=params)
+            response.raise_for_status()  # Ensure a successful HTTP response
+            data = response.json()
+            attributes = data.get('attributes', {})
+
             category = attributes.get('category')
             description = attributes.get('description')
             tmdb = attributes.get('tmdb_id')
@@ -206,107 +205,80 @@ class COMMON():
             mal = attributes.get('mal_id')
             imdb = attributes.get('imdb_id')
             infohash = attributes.get('info_hash')
-            
+
             bbcode = BBCODE()
             description, imagelist = bbcode.clean_unit3d_description(description, torrent_url)
             console.print(f"[green]Successfully grabbed description from {tracker}")
-        except Exception:
-            console.print(traceback.print_exc())
-            console.print(f"[yellow]Invalid Response from {tracker} API.")
-            
+
+        except requests.exceptions.HTTPError as http_err:
+            console.print(f"[red]HTTP error occurred: {http_err}")
+        except requests.exceptions.RequestException as req_err:
+            console.print(f"[red]Request error occurred: {req_err}")
+        except (KeyError, TypeError, ValueError) as json_err:
+            console.print(f"[red]JSON parsing error: {json_err}")
+        except Exception as e:
+            console.print(f"[yellow]An unexpected error occurred: {e}")
 
         return tmdb, imdb, tvdb, mal, description, category, infohash, imagelist
 
     async def parseCookieFile(self, cookiefile):
-        """Parse a cookies.txt file and return a dictionary of key value pairs
+        """Parse a cookies.txt file and return a dictionary of key-value pairs
         compatible with requests."""
 
         cookies = {}
-        with open (cookiefile, 'r') as fp:
+        with open(cookiefile, 'r') as fp:
             for line in fp:
-                if not line.startswith(("# ", "\n", "#\n")):
-                    lineFields = re.split(' |\t', line.strip())
-                    lineFields = [x for x in lineFields if x != ""]
-                    cookies[lineFields[5]] = lineFields[6]
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    lineFields = re.split(r'\s+', line)
+                    if len(lineFields) > 6:
+                        cookies[lineFields[5]] = lineFields[6]
         return cookies
-
-
 
     async def ptgen(self, meta, ptgen_site="", ptgen_retry=3):
         ptgen = ""
-        url = 'https://ptgen.zhenzhen.workers.dev'
-        if ptgen_site != '':
-            url = ptgen_site
+        url = ptgen_site or 'https://ptgen.zhenzhen.workers.dev'
         params = {}
-        data={}
-        #get douban url 
+        data = {}
+
         if int(meta.get('imdb_id', '0')) != 0:
             data['search'] = f"tt{meta['imdb_id']}"
-            ptgen = requests.get(url, params=data)
-            if ptgen.json()["error"] != None:
-                for retry in range(ptgen_retry):
-                    try:
-                        ptgen = requests.get(url, params=params)
-                        if ptgen.json()["error"] == None:
-                            break
-                    except requests.exceptions.JSONDecodeError:
-                        continue
-            try:
-                params['url'] = ptgen.json()['data'][0]['link'] 
-            except Exception:
+            ptgen = self._get_ptgen_data(url, data, ptgen_retry)
+            if not ptgen:
                 console.print("[red]Unable to get data from ptgen using IMDb")
                 params['url'] = console.input(f"[red]Please enter [yellow]Douban[/yellow] link: ")
+            else:
+                params['url'] = ptgen['data'][0]['link']
         else:
             console.print("[red]No IMDb id was found.")
             params['url'] = console.input(f"[red]Please enter [yellow]Douban[/yellow] link: ")
-        try:
-            ptgen = requests.get(url, params=params)
-            if ptgen.json()["error"] != None:
-                for retry in range(ptgen_retry):
-                    ptgen = requests.get(url, params=params)
-                    if ptgen.json()["error"] == None:
-                        break
-            ptgen = ptgen.json()
-            meta['ptgen'] = ptgen
-            with open (f"{meta['base_dir']}/tmp/{meta['uuid']}/meta.json", 'w') as f:
-                json.dump(meta, f, indent=4)
-                f.close()
-            ptgen = ptgen['format']
-            if "[/img]" in ptgen:
-                ptgen = ptgen.split("[/img]")[1]
-            ptgen = f"[img]{meta.get('imdb_info', {}).get('cover', meta.get('cover', ''))}[/img]{ptgen}"
-        except Exception:
-            console.print_exception()
-            console.print(ptgen.text)
+
+        ptgen = self._get_ptgen_data(url, params, ptgen_retry)
+        if not ptgen:
             console.print("[bold red]There was an error getting the ptgen \nUploading without ptgen")
             return ""
+
+        meta['ptgen'] = ptgen
+        with open(f"{meta['base_dir']}/tmp/{meta['uuid']}/meta.json", 'w') as f:
+            json.dump(meta, f, indent=4)
+
+        ptgen_format = ptgen['format']
+        if "[/img]" in ptgen_format:
+            ptgen_format = ptgen_format.split("[/img]")[1]
+        ptgen = f"[img]{meta.get('imdb_info', {}).get('cover', meta.get('cover', ''))}[/img]{ptgen_format}"
+
         return ptgen
 
-
-
-    # async def ptgen(self, meta):
-    #     ptgen = ""
-    #     url = "https://api.iyuu.cn/App.Movie.Ptgen"
-    #     params = {}
-    #     if int(meta.get('imdb_id', '0')) != 0:
-    #         params['url'] = f"tt{meta['imdb_id']}"
-    #     else:
-    #         console.print("[red]No IMDb id was found.")
-    #         params['url'] = console.input(f"[red]Please enter [yellow]Douban[/yellow] link: ")
-    #     try:
-    #         ptgen = requests.get(url, params=params)
-    #         ptgen = ptgen.json()
-    #         ptgen = ptgen['data']['format']
-    #         if "[/img]" in ptgen:
-    #             ptgen = ptgen.split("[/img]")[1]
-    #         ptgen = f"[img]{meta.get('imdb_info', {}).get('cover', meta.get('cover', ''))}[/img]{ptgen}"
-    #     except:
-    #         console.print_exception()
-    #         console.print("[bold red]There was an error getting the ptgen")
-    #         console.print(ptgen)
-    #     return ptgen
-
-
+    def _get_ptgen_data(self, url, params, retries):
+        for _ in range(retries):
+            try:
+                response = requests.get(url, params=params)
+                response_data = response.json()
+                if response_data.get("error") is None:
+                    return response_data
+            except requests.exceptions.JSONDecodeError:
+                continue
+        return None
 
     async def filter_dupes(self, dupes, meta):
         if meta['debug']:
@@ -314,73 +286,65 @@ class COMMON():
             console.log(dupes)
         new_dupes = {}
         for each in dupes:
-            if meta.get('sd', 0) == 1:
-                remove_set = set()
-            else:
-                remove_set = set({meta['resolution']})
+            remove_set = set() if meta.get('sd', 0) == 1 else {meta['resolution']}
+
             search_combos = [
                 {
-                    'search' : meta['hdr'],
-                    'search_for' : {'HDR', 'PQ10'},
-                    'update' : {'HDR|PQ10'}
+                    'search': meta['hdr'],
+                    'search_for': {'HDR', 'PQ10'},
+                    'update': {'HDR|PQ10'}
                 },
                 {
-                    'search' : meta['hdr'],
-                    'search_for' : {'DV'},
-                    'update' : {'DV|DoVi'}
+                    'search': meta['hdr'],
+                    'search_for': {'DV'},
+                    'update': {'DV|DoVi'}
                 },
                 {
-                    'search' : meta['hdr'],
-                    'search_not' : {'DV', 'DoVi', 'HDR', 'PQ10'},
-                    'update' : {'!(DV)|(DoVi)|(HDR)|(PQ10)'}
+                    'search': meta['hdr'],
+                    'search_not': {'DV', 'DoVi', 'HDR', 'PQ10'},
+                    'update': {'!(DV)|(DoVi)|(HDR)|(PQ10)'}
                 },
                 {
-                    'search' : str(meta.get('tv_pack', 0)),
-                    'search_for' : '1',
-                    'update' : {fr"{meta['season']}(?!E\d+)"}
+                    'search': str(meta.get('tv_pack', 0)),
+                    'search_for': '1',
+                    'update': {fr"{meta['season']}(?!E\d+)"}
                 },
                 {
-                    'search' : meta['episode'],
-                    'search_for' : meta['episode'],
-                    'update' : {meta['season'], meta['episode']}
+                    'search': meta['episode'],
+                    'search_for': meta['episode'],
+                    'update': {meta['season'], meta['episode']}
                 }
             ]
+
             search_matches = [
                 {
-                    'if' : {'REMUX', 'WEBDL', 'WEBRip', 'HDTV'},
-                    'in' : meta['type']
+                    'if': {'REMUX', 'WEBDL', 'WEBRip', 'HDTV'},
+                    'in': meta['type']
                 }
             ]
+
             for s in search_combos:
-                if s.get('search_for') not in (None, ''):
+                if s.get('search_for'):
                     if any(re.search(x, s['search'], flags=re.IGNORECASE) for x in s['search_for']):
                         remove_set.update(s['update'])
-                if s.get('search_not') not in (None, ''):
+                if s.get('search_not'):
                     if not any(re.search(x, s['search'], flags=re.IGNORECASE) for x in s['search_not']):
                         remove_set.update(s['update'])
+
             for sm in search_matches:
-                for a in sm['if']:
-                    if a in sm['in']:
-                        remove_set.add(a)
+                if any(a in sm['in'] for a in sm['if']):
+                    remove_set.update(sm['if'])
 
             search = each.lower().replace('-', '').replace(' ', '').replace('.', '')
-            for x in remove_set.copy():
+            for x in list(remove_set):
                 if "|" in x:
                     look_for = x.split('|')
-                    for y in look_for:
-                        if y.lower() in search:
-                            if x in remove_set:
-                                remove_set.remove(x)
-                            remove_set.add(y)
+                    if any(y.lower() in search for y in look_for):
+                        remove_set.discard(x)
+                        remove_set.update(look_for)
 
-            allow = True
-            for x in remove_set:
-                if not x.startswith("!"):
-                    if not re.search(x, search, flags=re.I):
-                        allow = False
-                else:
-                    if re.search(x.replace("!", "", 1), search, flags=re.I) not in (None, False):
-                        allow = False
+            allow = all(re.search(x.lstrip("!"), search, flags=re.I) if not x.startswith("!") else not re.search(x[1:], search, flags=re.I) for x in remove_set)
+
             if allow and each not in new_dupes:
                 new_dupes[each] = dupes[each]
         return new_dupes
