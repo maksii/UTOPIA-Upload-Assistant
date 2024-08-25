@@ -286,26 +286,28 @@ def get_confirmation(meta):
 
     console.print(Panel("\n".join(db_info), title="Database Info", border_style="bold yellow"))
     console.print()
-    if int(meta.get('freeleech', '0')) != 0:
-        console.print(f"[bold]Freeleech[/bold]: {meta['freeleech']}")
-    if meta['tag'] == "":
-            tag = ""
-    else:
-        tag = f" / {meta['tag'][1:]}"
-    if meta['is_disc'] == "DVD":
-        res = meta['source']
-    else:
-        res = meta['resolution']
 
-    console.print(Text(f" {res} / {meta['type']}{tag}", style="bold"))
+    tag = f"{meta['tag'][1:]}" if meta['tag'] else ""
+    res = meta['source'] if meta['is_disc'] == "DVD" else meta['resolution']
+    release_info = [
+            f"[bold]Type[/bold]: {meta['type']}",
+            f"[bold]Resolution[/bold]: {res}",
+            f"[bold]Release Group(tag)[/bold]: {tag}",
+        ]
+    
+    if int(meta.get('freeleech', '0')) != 0:
+        release_info.append(f"[bold]Freeleech[/bold]: {meta['freeleech']}")
+
     if meta.get('personalrelease', False) == True:
-        console.print("[bright_magenta]Personal Release!")
-    console.print()
+        release_info.append(f"[bright_magenta]Personal Release!")
+        
     if not meta.get('unattended', False):
         get_missing(meta)
         ring_the_bell = "\a" if config['DEFAULT'].get("sfx_on_prompt", True) == True else "" # \a rings the bell
+        release_info.append(f"[bold]Release Name[/bold]: [bright_magenta] {meta['name']}")
+        console.print(Panel("\n".join(release_info), title="Release Info", border_style="bold yellow"))
+        
         console.print(f"[bold yellow]Is this correct?{ring_the_bell}") 
-        console.print(f"[bold]Name[/bold]: {meta['name']}")
         confirm = Confirm.ask(" Correct?")
     else:
         console.print(f"[bold]Name[/bold]: {meta['name']}")
