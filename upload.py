@@ -1,4 +1,3 @@
-import requests
 from src.args import Args
 from src.clients import Clients
 from src.prep import Prep
@@ -13,11 +12,6 @@ import re
 import platform
 import shutil
 import glob
-import subprocess
-import traceback
-import time
-import random
-from packaging.version import Version
 
 from src.console import console
 from rich.markdown import Markdown
@@ -26,18 +20,9 @@ from rich.prompt import Prompt, Confirm
 from rich.text import Text
 from rich.panel import Panel
 from rich.table import Table
-from rich.align import Align
 from rich.rule import Rule
-from rich.console import Group
-from rich.progress import Progress, TimeRemainingColumn
 from difflib import SequenceMatcher
 import bencodepy as bencode
-from urllib.parse import urlparse, parse_qs
-import importlib
-
-
-
-import traceback
 
 # Determine if the application is running as a frozen executable or as a script
 if getattr(sys, 'frozen', False):
@@ -223,13 +208,11 @@ async def do_the_thing(base_dir):
             trackers.insert(0, "MANUAL")
         
 
-
         ####################################
         #######  Upload to Trackers  #######
         ####################################
         common = COMMON(config=config)
         api_trackers = ['UTOPIA']
-        http_trackers = ['HDB', 'TTG', 'FL', 'PTER', 'HDT', 'MTV']
         tracker_class_map = {'UTOPIA' : UTOPIA}
 
         for tracker in trackers:
@@ -260,24 +243,6 @@ async def do_the_thing(base_dir):
                         if tracker == 'SN':
                             await asyncio.sleep(16)
                         await client.add_to_client(meta, tracker_class.tracker)
-            
-            if tracker in http_trackers:
-                tracker_class = tracker_class_map[tracker](config=config)
-                if meta['unattended']:
-                    upload_to_tracker = True
-                else:
-                    upload_to_tracker = Confirm.ask(f"Upload to {tracker_class.tracker}? {debug}", choices=["y", "N"])
-                if upload_to_tracker:
-                    console.print(f"Uploading to {tracker}")
-                    if check_banned_group(tracker_class.tracker, tracker_class.banned_groups, meta):
-                        continue
-                    if await tracker_class.validate_credentials(meta) == True:
-                        dupes = await tracker_class.search_existing(meta)
-                        dupes = await common.filter_dupes(dupes, meta)
-                        meta, skipped = dupe_check(dupes, meta)
-                        if meta['upload'] == True:
-                            await tracker_class.upload(meta)
-                            await client.add_to_client(meta, tracker_class.tracker)
 
             if tracker == "MANUAL":
                 if meta['unattended']:                
@@ -522,11 +487,8 @@ def main():
         asyncio.run(do_the_thing(base_dir))
 
 import asyncio
-import multiprocessing
 import platform
-from multiprocessing import set_start_method, freeze_support
+from multiprocessing import freeze_support
 if __name__ == '__main__':
     freeze_support()
-    #set_start_method('spawn')
     main()
-    
