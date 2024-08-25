@@ -110,11 +110,10 @@ class COMMON():
 
             use_global_sigs = self.config["DEFAULT"].get("use_global_sigs", False)
             sig_config = self.config["DEFAULT"] if use_global_sigs else self.config["TRACKERS"][tracker]
-
-            signature = sig_config.get("signature")
-            anon_signature = sig_config.get("anon_signature")
-            pr_signature = sig_config.get("pr_signature")
-            anon_pr_sig = sig_config.get("anon_pr_sig")
+            signature = sig_config.get("global_sig" if use_global_sigs else "signature", "global_sig")
+            anon_signature = sig_config.get("global_anon_sig" if use_global_sigs else "anon_signature", "global_anon_sig")
+            pr_signature = sig_config.get("global_pr_sig" if use_global_sigs else "pr_signature", "global_pr_sig")
+            anon_pr_sig = sig_config.get("global_anon_pr_sig" if use_global_sigs else "anon_pr_signature", "global_anon_pr_sig")
 
             if not all([signature, anon_signature, pr_signature, anon_pr_sig]):
                 print("[bold][red]WARN[/red]: Signatures are enabled but not provided in config.[/bold]")
