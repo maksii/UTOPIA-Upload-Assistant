@@ -148,10 +148,9 @@ async def do_the_thing(base_dir):
 
         if meta.get('image_list', False) in (False, []) and meta.get('skip_imghost_upload', False) == False:
             return_dict = {}
-            meta['image_list'], dummy_var = prep.upload_screens(meta, meta['screens'], 1, 0, meta['screens'],[], return_dict)
+            meta['image_list'] = prep.upload_screens(meta, meta['screens'], 1, 0, meta['screens'],[], return_dict)
             if meta['debug']:
                 console.print(meta['image_list'])
-            # meta['uploaded_screens'] = True
         elif meta.get('skip_imghost_upload', False) == True and meta.get('image_list', False) == False:
             meta['image_list'] = []
 

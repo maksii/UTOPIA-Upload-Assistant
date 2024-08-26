@@ -1863,7 +1863,8 @@ class Prep():
         tag = guess.get('release_group', 'NOGROUP')
 
         def contains_keywords(text, keywords):
-            return any(re.search(rf'\b{keyword}\b', text.upper()) for keyword in keywords)
+            text_upper = text.upper()
+            return any(re.search(re.escape(keyword), text_upper) for keyword in keywords)
 
         cuts = {
             "director cut": "Director's Cut",
@@ -2106,12 +2107,6 @@ class Prep():
                                 progress.console.print("[yellow]imgbb failed, trying next image host")
                                 progress.stop()
                                 newhost_list, i = self.upload_screens(meta, screens - i , img_host_num + 1, i, total_screens, [], return_dict)
-                        elif img_host == "freeimage.host":
-                            progress.console.print("[red]Support for freeimage.host has been removed. Please remove from your config")
-                            progress.console.print("continuing in 15 seconds")
-                            time.sleep(15)
-                            progress.stop()
-                            newhost_list, i = self.upload_screens(meta, screens - i, img_host_num + 1, i, total_screens, [], return_dict)
                         elif img_host == "pixhost":
                             url = "https://api.pixhost.to/images"
                             data = {
@@ -2325,7 +2320,6 @@ class Prep():
         format_vars = {key[1]: meta.get(key[1], '') for key in string.Formatter().parse(template) if key[1]}
         name = template.format(**format_vars)
 
-        
         try:
             # Normalize whitespace in the name    
             name = ' '.join(name.split())
