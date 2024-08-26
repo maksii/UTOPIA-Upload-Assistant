@@ -1905,9 +1905,9 @@ class Prep():
         ratio = next((value for key, value in ratios.items() if key in video.upper()), "")
 
         repack = next((repack_type for repack_type, keywords in repack_keywords.items() 
-            if contains_keywords(video, keywords) or contains_keywords(edition, keywords) or contains_keywords(manual_edition, keywords)), "")
+            if contains_keywords(video, keywords) or contains_keywords(edition, keywords) or contains_keywords(str(manual_edition), keywords)), "")
         
-        if contains_keywords(edition, ai_upscale_keywords) or contains_keywords(video, ai_upscale_keywords) or contains_keywords(manual_edition, ai_upscale_keywords):
+        if contains_keywords(edition, ai_upscale_keywords) or contains_keywords(video, ai_upscale_keywords) or contains_keywords(str(manual_edition), ai_upscale_keywords):
             edition = "AI UPSCALE " + edition
 
         if "HYBRID" in video.upper() and "HYBRID" not in title.upper():
