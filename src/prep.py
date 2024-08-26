@@ -1857,31 +1857,13 @@ class Prep():
 
 
     def get_edition(self, title, video, bdinfo, filelist, manual_edition):
-        if video.lower().startswith('dc'):
-            video = video.replace('dc', '', 1)
+        # Normalize video string
+        video = video.lower().replace('dc', '', 1)
         guess = guessit(video)
         tag = guess.get('release_group', 'NOGROUP')
-        repack = ""
-        cut = ""
-        ratio = ""
-        edition = ""
-        if bdinfo != None:
-            try:
-                edition = guessit(bdinfo['label'])['edition']
-            except:
-                edition = ""
-        else:
-            try:
-                edition = guess['edition']
-            except:
-                edition = ""
-        if isinstance(edition, list):
-            # time.sleep(2)
-            edition = " ".join(edition)
-        if len(filelist) == 1:
-            video = os.path.basename(video)
 
-        video = video.upper().replace('.', ' ').replace(tag, '').replace('-', '')
+        def contains_keywords(text, keywords):
+            return any(re.search(rf'\b{keyword}\b', text.upper()) for keyword in keywords)
 
         cuts = {
             "director cut": "Director's Cut",
@@ -1891,56 +1873,49 @@ class Prep():
             "uncut": "Uncut",
             "super duper": "Super Duper Cut"
         }
-        for key, value in cuts.items():
-            if key in video.lower():
-                cut = value
-
+        ai_upscale_keywords = [" AI ", "UPSCALE"]
+        repack_keywords = {
+            "REPACK": ["REPACK", " REPACK ", "[REPACK]", "V2"],
+            "REPACK2": ["REPACK2", " REPACK2 ", "[REPACK2]", "V3"],
+            "REPACK3": ["REPACK3", " REPACK3 ", "[REPACK3]", "V4"],
+            "PROPER": ["PROPER", " PROPER "],
+            "PROPER2": ["PROPER2", " PROPER2 "],
+            "RERIP": ["RERIP"," RERIP "],
+            "RERIP2": ["RERIP2"," RERIP2 "],
+        }
         ratios = {"IMAX": "IMAX", "OPEN MATTE": "Open Matte", " MAR ": "MAR"}
-        for key, value in ratios.items():
-            if key in video.upper():
-                ratio = value
 
-        if manual_edition != None:
-            if isinstance(manual_edition, list):
-                manual_edition = " ".join(manual_edition)
-            edition = str(manual_edition)
+        edition = ""
+        if bdinfo:
+            try:
+                edition = guessit(bdinfo['label']).get('edition', "")
+            except Exception:
+                edition = ""
+        else:
+            edition = guess.get('edition', "")
             
-        if manual_edition is not None and ("AI" in manual_edition.upper() or "UPSCALE" in manual_edition.upper()):
-            manual_edition = " AI UPSCALE"              
-        if "AI" in edition.upper() or "UPSCALE" in edition.upper():
-            edition = "AI UPSCALE" 
-        if "AI" in video.upper() and "UPSCALE" in video.upper():
-            edition = "AI UPSCALE"            
-        if " REPACK " in (video or edition) or "[REPACK]" in video or "V2" in video:
-            repack = "REPACK"
-        if " REPACK2 " in (video or edition) or "[REPACK2]" in video or "V3" in video:
-            repack = "REPACK2"
-        if " REPACK3 " in (video or edition) or "[REPACK3]" in video or "V4" in video:
-            repack = "REPACK3"
-        if " PROPER " in (video or edition):
-            repack = "PROPER"
-        if " RERIP " in (video.upper() or edition):
-            repack = "RERIP"
-        if " HYBRID " in video.upper() and "HYBRID" not in title.upper():
+        if isinstance(edition, list):
+            edition = " ".join(edition)
+
+        if len(filelist) == 1:
+            video = os.path.basename(video)
+
+        video = video.upper().replace('.', ' ').replace(tag, '').replace('-', '')
+        cut = next((value for key, value in cuts.items() if key in video.lower()), "")
+        ratio = next((value for key, value in ratios.items() if key in video.upper()), "")
+
+        repack = next((repack_type for repack_type, keywords in repack_keywords.items() 
+            if contains_keywords(video, keywords) or contains_keywords(edition, keywords) or contains_keywords(manual_edition, keywords)), "")
+        
+        if contains_keywords(edition, ai_upscale_keywords) or contains_keywords(video, ai_upscale_keywords) or contains_keywords(manual_edition, ai_upscale_keywords):
+            edition = "AI UPSCALE " + edition
+
+        if "HYBRID" in video.upper() and "HYBRID" not in title.upper():
             edition = "Hybrid " + edition
+
         edition = re.sub(r"(REPACK\d?)?(RERIP)?(PROPER)?", "", edition, flags=re.IGNORECASE).strip()
-        bad = ['internal', 'limited', 'retail']
 
-        if edition.lower() in bad:
-            edition = ""
-        # try:
-        #     other = guess['other']
-        # except:
-        #     other = ""
-        # if " 3D " in other:
-        #     edition = edition + " 3D "
-        # if edition == None or edition == None:
-        #     edition = ""
         return edition, repack, cut, ratio
-
-
-
-
 
     """
     Create Torrent
@@ -2091,11 +2066,13 @@ class Prep():
             if 'POSTER.png' in image_glob:
                 image_glob.remove('POSTER.png')
             existing_images = meta.get('image_list', [])
+            
         if len(existing_images) < total_screens:
             if img_host == 'imgbox':
                 nest_asyncio.apply()
                 console.print("[green]Uploading Screens to Imgbox...")
                 image_list = asyncio.run(self.imgbox_upload(f"{meta['base_dir']}/tmp/{meta['uuid']}", image_glob))
+                i = i+ len(image_list)
                 if image_list == []:
                     if img_host_num == 0:
                         img_host_num = 1
@@ -2258,8 +2235,6 @@ class Prep():
                             console.print("[bold red]Please choose a supported image host in your config")
                             exit()
 
-
-                    
                         if len(newhost_list) >=1:
                             image_list.extend(newhost_list)
                         else:
