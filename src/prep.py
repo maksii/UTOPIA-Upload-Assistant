@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
-from sys import meta_path
 from src.image_upload_providers.image_uploader import ImageUploader
 from src.args import Args
 from src.console import console
-from src.trackers.COMMON import COMMON
 
 try:
     import string
     import sys
     import traceback
-    import nest_asyncio
     from src.discparse import DiscParse
     import multiprocessing
     import os
@@ -33,19 +30,15 @@ try:
     from datetime import datetime, date
     from difflib import SequenceMatcher
     from torf import Torrent
-    import base64
     import time
     import anitopy
-    import shutil
     from imdb import Cinemagoer
-    from subprocess import Popen
     import subprocess
     import itertools
     from rich.prompt import Prompt
     from rich.progress import Progress, TextColumn, BarColumn, TimeRemainingColumn
     from rich.traceback import install, Traceback
     import platform
-    import langcodes
     from requests.exceptions import HTTPError
 except ModuleNotFoundError:
     console.print(traceback.print_exc())
