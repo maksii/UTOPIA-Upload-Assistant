@@ -3,7 +3,6 @@ from sys import meta_path
 from src.image_upload_providers.image_uploader import ImageUploader
 from src.args import Args
 from src.console import console
-from src.exceptions import *
 from src.trackers.COMMON import COMMON
 
 try:
@@ -1624,7 +1623,7 @@ class Prep():
                         if track.track_type == "Video":
                             system = track.standard
                     if system not in ("PAL", "NTSC"):
-                        raise WeirdSystem
+                        raise Exception
                 except:
                     try:
                         other = guessit(video)['other']
@@ -2133,7 +2132,7 @@ class Prep():
             if meta['anime'] == False:
                 try:
                     if meta.get('manual_date'):
-                        raise ManualDateException
+                        raise Exception
                     try:
                         guess_year = guessit(video)['year']
                     except Exception:
@@ -2250,7 +2249,7 @@ class Prep():
                             url = "https://thexem.info/map/single"
                             response = requests.post(url, params=params).json()
                             if response['result'] == "failure":
-                                raise XEMNotFound
+                                raise Exception
                             if meta['debug']:
                                 console.log(f"[cyan]TheXEM Absolute -> Standard[/cyan]\n{response}")
                             season_int = str(response['data']['scene']['season'])
@@ -2299,7 +2298,7 @@ class Prep():
                                                             season = "S01"
                                                         difference = diff
                             else:
-                                raise XEMNotFound
+                                raise Exception
                     except Exception:
                         if meta['debug']:
                             console.print_exception()

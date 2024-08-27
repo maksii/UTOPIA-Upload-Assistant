@@ -96,9 +96,7 @@ class DiscParse():
                 discs = meta_discs
         
         return discs, discs[0]['bdinfo']
-        
-            
-
+    
     def parse_bdinfo(self, bdinfo_input, files, path):
         bdinfo = dict()
         bdinfo['video'] = list()
@@ -204,8 +202,6 @@ class DiscParse():
             except:
                 pass
         return bdinfo
-
-
     
     """
     Parse VIDEO_TS and get mediainfos

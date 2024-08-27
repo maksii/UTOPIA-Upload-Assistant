@@ -3,7 +3,6 @@ import requests
 import json
 from src.trackers.COMMON import COMMON
 from src.console import console
-import platform
 
 class UTOPIA():
     def __init__(self, config):

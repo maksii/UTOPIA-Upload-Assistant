@@ -2,9 +2,7 @@ from torf import Torrent
 import os
 import requests
 import re
-import json
 
-from src.bbcode import BBCODE
 from src.console import console
 from rich import print
 
@@ -66,7 +64,6 @@ class COMMON():
             if desc_header:
                 descfile.write(desc_header)
 
-            bbcode = BBCODE()
             discs = meta.get('discs', [])
 
             if discs:
@@ -84,11 +81,7 @@ class COMMON():
                         descfile.write(f"{each['name']}:\n")
                         descfile.write(f"[spoiler={os.path.basename(each['largest_evo'])}][code]{each['evo_mi']}[/code][/spoiler]\n\n")
 
-            desc = bbcode.convert_pre_to_code(base_desc)
-            desc = bbcode.convert_hide_to_spoiler(desc)
-            if not comparison:
-                desc = bbcode.convert_comparison_to_collapse(desc, 1000)
-
+            desc = base_desc
             img_size = self.config["DEFAULT"].get("img_size", 500)
             inline_imgs = self.config["DEFAULT"].get("inline_imgs", 0)
             images = meta['image_list']
@@ -210,8 +203,6 @@ class COMMON():
             imdb = attributes.get('imdb_id')
             infohash = attributes.get('info_hash')
 
-            bbcode = BBCODE()
-            description, imagelist = bbcode.clean_unit3d_description(description, torrent_url)
             console.print(f"[green]Successfully grabbed description from {tracker}")
 
         except requests.exceptions.HTTPError as http_err:
@@ -238,51 +229,6 @@ class COMMON():
                     if len(lineFields) > 6:
                         cookies[lineFields[5]] = lineFields[6]
         return cookies
-
-    async def ptgen(self, meta, ptgen_site="", ptgen_retry=3):
-        ptgen = ""
-        url = ptgen_site or 'https://ptgen.zhenzhen.workers.dev'
-        params = {}
-        data = {}
-
-        if int(meta.get('imdb_id', '0')) != 0:
-            data['search'] = f"tt{meta['imdb_id']}"
-            ptgen = self._get_ptgen_data(url, data, ptgen_retry)
-            if not ptgen:
-                console.print("[red]Unable to get data from ptgen using IMDb")
-                params['url'] = console.input(f"[red]Please enter [yellow]Douban[/yellow] link: ")
-            else:
-                params['url'] = ptgen['data'][0]['link']
-        else:
-            console.print("[red]No IMDb id was found.")
-            params['url'] = console.input(f"[red]Please enter [yellow]Douban[/yellow] link: ")
-
-        ptgen = self._get_ptgen_data(url, params, ptgen_retry)
-        if not ptgen:
-            console.print("[bold red]There was an error getting the ptgen \nUploading without ptgen")
-            return ""
-
-        meta['ptgen'] = ptgen
-        with open(f"{meta['base_dir']}/tmp/{meta['uuid']}/meta.json", 'w') as f:
-            json.dump(meta, f, indent=4)
-
-        ptgen_format = ptgen['format']
-        if "[/img]" in ptgen_format:
-            ptgen_format = ptgen_format.split("[/img]")[1]
-        ptgen = f"[img]{meta.get('imdb_info', {}).get('cover', meta.get('cover', ''))}[/img]{ptgen_format}"
-
-        return ptgen
-
-    def _get_ptgen_data(self, url, params, retries):
-        for _ in range(retries):
-            try:
-                response = requests.get(url, params=params)
-                response_data = response.json()
-                if response_data.get("error") is None:
-                    return response_data
-            except requests.exceptions.JSONDecodeError:
-                continue
-        return None
 
     async def filter_dupes(self, dupes, meta):
         if meta['debug']:

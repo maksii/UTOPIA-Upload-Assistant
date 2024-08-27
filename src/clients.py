@@ -4,11 +4,10 @@ import xmlrpc.client
 import bencode
 import os
 import qbittorrentapi
-from deluge_client import DelugeRPCClient, LocalDelugeRPCClient
+from deluge_client import DelugeRPCClient
 import base64
 from pyrobase.parts import Bunch
 import errno
-import asyncio
 import ssl
 import shutil
 import time
@@ -23,7 +22,6 @@ class Clients():
         self.config = config
         pass
     
-
     async def add_to_client(self, meta, tracker):
         torrent_path = f"{meta['base_dir']}/tmp/{meta['uuid']}/[{tracker}]{meta['clean_name']}.torrent"
         if meta.get('no_seed', False) == True:
@@ -59,9 +57,7 @@ class Clients():
         elif torrent_client.lower() == "watch":
             shutil.copy(torrent_path, client['watch_folder'])
         return
-   
-        
-
+    
     async def find_existing_torrent(self, meta):
         if meta.get('client', None) == None:
             default_torrent_client = self.config['DEFAULT']['default_torrent_client']
@@ -99,8 +95,7 @@ class Clients():
                 return torrent_path
         
         return None
-
-
+    
     async def is_valid_torrent(self, meta, torrent_path, torrenthash, torrent_client, print_err=False):
         valid = False
         wrong_file = False
@@ -161,15 +156,14 @@ class Clients():
         if print_err:
             console.print(err_print)
         return valid, torrent_path
-
-
+    
     async def search_qbit_for_torrent(self, meta, client):
         console.print("[green]Searching qbittorrent for an existing .torrent")
         torrent_storage_dir = client.get('torrent_storage_dir', None)
         if torrent_storage_dir == None and client.get("torrent_client", None) != "watch":
             console.print(f"[bold red]Missing torrent_storage_dir for {self.config['DEFAULT']['default_torrent_client']}")
             return None
-
+        
         try:
             qbt_client = qbittorrentapi.Client(host=client['qbit_url'], port=client['qbit_port'], username=client['qbit_user'], password=client['qbit_pass'], VERIFY_WEBUI_CERTIFICATE=client.get('VERIFY_WEBUI_CERTIFICATE', True))
             qbt_client.auth_log_in()
@@ -179,13 +173,13 @@ class Clients():
         except qbittorrentapi.APIConnectionError:
             console.print("[bold red]APIConnectionError: INCORRECT HOST/PORT")
             return None
-
+        
         # Remote path map if needed
         remote_path_map = False
         local_path, remote_path = await self.remote_path_map(meta)
         if local_path.lower() in meta['path'].lower() and local_path.lower() != remote_path.lower():
             remote_path_map = True
-
+            
         torrents = qbt_client.torrents.info()
         for torrent in torrents:
             try:
@@ -198,7 +192,7 @@ class Clients():
             if remote_path_map:
                 torrent_path = torrent_path.replace(remote_path, local_path)
                 torrent_path = torrent_path.replace(os.sep, '/').replace('/', os.sep)
-
+                
             if meta['is_disc'] in ("", None) and len(meta['filelist']) == 1:
                 if torrent_path == meta['filelist'][0] and len(torrent.files) == len(meta['filelist']):
                     valid, torrent_path = await self.is_valid_torrent(meta, f"{torrent_storage_dir}/{torrent.hash}.torrent", torrent.hash, 'qbit', print_err=False)
@@ -211,7 +205,7 @@ class Clients():
                     console.print(f"[green]Found a matching .torrent with hash: [bold yellow]{torrent.hash}")
                     return torrent.hash
         return None
-
+    
     def rtorrent(self, path, torrent_path, torrent, meta, local_path, remote_path, client):
         rtorrent = xmlrpc.client.Server(client['rtorrent_url'], context=ssl._create_stdlib_context())
         metainfo = bencode.bread(torrent_path)
@@ -227,12 +221,8 @@ class Clients():
             fr_file = torrent_path.replace('.torrent', '-resume.torrent')
             console.print("Creating fast resume")
             bencode.bwrite(fast_resume, fr_file)
-
-
+            
         isdir = os.path.isdir(path)
-        # if meta['type'] == "DISC":
-        #     path = os.path.dirname(path)
-        #Remote path mount
         modified_fr = False
         if local_path.lower() in path.lower() and local_path.lower() != remote_path.lower():
             path_dir = os.path.dirname(path)
@@ -243,7 +233,6 @@ class Clients():
             modified_fr = True
         if isdir == False:
             path = os.path.dirname(path)
-        
         
         console.print("[bold yellow]Adding and starting torrent")
         rtorrent.load.start_verbose('', fr_file, f"d.directory_base.set={path}")
@@ -260,10 +249,8 @@ class Clients():
         if meta['debug']:
             console.print(f"[cyan]Path: {path}")
         return
-
-
+    
     async def qbittorrent(self, path, torrent, local_path, remote_path, client, is_disc, filelist, meta):
-        # infohash = torrent.infohash
         #Remote path mount
         isdir = os.path.isdir(path)
         if not isdir and len(filelist) == 1:
@@ -292,7 +279,7 @@ class Clients():
             if os.path.normpath(am_config).lower() in os.path.normpath(path).lower() and am_config.strip() != "": 
                 auto_management = True
         qbt_category = client.get("qbit_cat") if not meta.get("qbit_cat") else meta.get('qbit_cat')
-
+        
         content_layout = client.get('content_layout', 'Original')
         
         qbt_client.torrents_add(torrent_files=torrent.dump(), save_path=path, use_auto_torrent_management=auto_management, is_skip_checking=True, is_paused=False, content_layout=content_layout, category=qbt_category, tags=client.get('qbit_tag'))
@@ -301,7 +288,6 @@ class Clients():
 
     def deluge(self, path, torrent_path, torrent, local_path, remote_path, client, meta):
         client = DelugeRPCClient(client['deluge_url'], int(client['deluge_port']), client['deluge_user'], client['deluge_pass'])
-        # client = LocalDelugeRPCClient()
         client.connect()
         if client.connected == True:
             console.print("Connected to Deluge")    
@@ -318,10 +304,7 @@ class Clients():
                 console.print(f"[cyan]Path: {path}")
         else:
             console.print("[bold red]Unable to connect to deluge")
-
-
-
-
+            
     def add_fast_resume(self, metainfo, datapath, torrent):
         """ Add fast resume data to a metafile dict.
         """
@@ -335,26 +318,26 @@ class Clients():
                 path=[os.path.abspath(datapath)],
                 length=metainfo["info"]["length"],
             )]
-
+            
         # Prepare resume data
         resume = metainfo.setdefault("libtorrent_resume", {})
         resume["bitfield"] = len(metainfo["info"]["pieces"]) // 20
         resume["files"] = []
         piece_length = metainfo["info"]["piece length"]
         offset = 0
-
+        
         for fileinfo in files:
             # Get the path into the filesystem
             filepath = os.sep.join(fileinfo["path"])
             if not single:
                 filepath = os.path.join(datapath, filepath.strip(os.sep))
-
+                
             # Check file size
             if os.path.getsize(filepath) != fileinfo["length"]:
                 raise OSError(errno.EINVAL, "File size mismatch for %r [is %d, expected %d]" % (
                     filepath, os.path.getsize(filepath), fileinfo["length"],
                 ))
-
+                
             # Add resume data for this file
             resume["files"].append(dict(
                 priority=1,
@@ -363,10 +346,9 @@ class Clients():
                         - offset // piece_length,
             ))
             offset += fileinfo["length"]
-
+            
         return metainfo
-
-
+    
     async def remote_path_map(self, meta):
         if meta.get('client', None) == None:
             torrent_client = self.config['DEFAULT']['default_torrent_client']
@@ -384,5 +366,5 @@ class Clients():
         remote_path = os.path.normpath(list_remote_path)
         if local_path.endswith(os.sep):
             remote_path = remote_path + os.sep
-
+            
         return local_path, remote_path
