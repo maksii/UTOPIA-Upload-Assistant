@@ -173,8 +173,6 @@ class Prep():
             # if meta.get('sd', None) == None:
             meta['sd'] = self.is_sd(meta['resolution'])
 
-            
-        
         if " AKA " in filename.replace('.',' '):
             filename = filename.split('AKA')[0]
         meta['filename'] = filename
@@ -280,22 +278,15 @@ class Prep():
         if "REPACK" in meta.get('edition', ""):
             meta['repack'] = re.search(r"REPACK[\d]?", meta['edition'])[0]
             meta['edition'] = re.sub(r"REPACK[\d]?", "", meta['edition']).strip().replace('  ', ' ')
-        
-        
-        
+
         #WORK ON THIS
         meta.get('stream', False)
         meta['stream'] = self.stream_optimized(meta['stream'])
         meta.get('anon', False)
         meta['anon'] = self.is_anon(meta['anon'])
-            
-        
-        
+
         meta = await self.gen_desc(meta)
         return meta
-
-
-
 
     """
     Determine if disc and if so, get bdinfo
@@ -359,12 +350,8 @@ class Prep():
         discs = sorted(discs, key=lambda d: d['name'])
         return is_disc, videoloc, bdinfo, discs
 
-
-   
-
     """
     Get video files
-
     """
     def get_video(self, videoloc, mode):
         filelist = []
@@ -466,8 +453,6 @@ class Prep():
                 res = each
                 break
         return res
-            
-        # return lst[min(range(len(lst)), key = lambda i: abs(lst[i]-K))]
 
     def mi_resolution(self, res, guess, width, scan, height, actual_height):
         res_map = {
@@ -514,9 +499,7 @@ class Prep():
             resolution = self.mi_resolution(resolution, guess, width, scan, height, actual_height)
         
         return resolution
-           
-               
-
+    
     def is_sd(self, resolution):
         if resolution in ("480i", "480p", "576i", "576p", "540p"):
             sd = 1
@@ -910,6 +893,7 @@ class Prep():
                         # Remove the smallest image
                         if smallest_image_path:
                             os.remove(smallest_image_path)
+                            
     def is_black_image(image_path, threshold=0.98):
         try:
             command = [
@@ -1188,7 +1172,6 @@ class Prep():
             except Exception:
                 console.print('[yellow]Unable to grab videos from TMDb.')
 
-            # meta['aka'] = f" AKA {response['original_name']}"
             meta['aka'], original_language = await self.get_imdb_aka(meta['imdb_id'])
             if original_language != None:
                 meta['original_language'] = original_language
@@ -1216,11 +1199,8 @@ class Prep():
             meta['aka'] = ""
         if f"({meta['year']})" in meta['aka']:
             meta['aka'] = meta['aka'].replace(f"({meta['year']})", "").strip()
-            
-        
+
         return meta
-
-
 
     def get_keywords(self, tmdb_info):
         if tmdb_info is not None:
@@ -1270,8 +1250,6 @@ class Prep():
             alt_name = f" AKA {romaji}"
             
             anime = True
-            # mal = AnimeSearch(romaji)
-            # mal_id = mal.results[0].mal_id
         else:
             mal_id = 0
         if meta.get('mal_id', 0) != 0:
@@ -1371,13 +1349,6 @@ class Prep():
             episodes = 0
         return romaji, mal_id, eng_title, season_year, episodes
 
-
-
-
-
-
-
-
     """
     Mediainfo/Bdinfo > meta
     """
@@ -1395,8 +1366,6 @@ class Prep():
                 additional = ""
             #Channels
             chan = bdinfo['audio'][0]['channels']
-
-
         else: 
             track_num = 2
             for i in range(len(mi['media']['track'])):
@@ -1461,13 +1430,6 @@ class Prep():
                             variants = ['zh', 'cn', 'cmn', 'no', 'nb']
                             if audio_language in variants and meta['original_language'] in variants:
                                 orig = True
-                                #TBD
-                            # Check for additional, bloated Tracks
-                            #if audio_language != meta['original_language'] and audio_language != "en":
-                            #    if meta['original_language'] not in variants and audio_language not in variants:
-                            #        audio_language = "und" if audio_language == "" else audio_language
-                            #        console.print(f"[bold red]This release has a(n) {audio_language} audio track, and may be considered bloated")
-                            #        time.sleep(5)
                     if eng and orig == True:
                         dual = "Dual-Audio"
                     elif eng == True and orig == False and meta['original_language'] not in ['zxx', 'xx', None] and meta.get('no_dub', False) == False:
@@ -2032,9 +1994,6 @@ class Prep():
             base_torrent.private = True
             Torrent.copy(base_torrent).write(f"{base_dir}/tmp/{uuid}/BASE.torrent", overwrite=True)
 
-
-
-
     """
     Upload Screenshots
     """
@@ -2145,8 +2104,6 @@ class Prep():
                     try:
                         guess_date = meta.get('manual_date', guessit(video)['date']) if meta.get('manual_date') else guessit(video)['date']
                         season_int, episode_int = self.daily_to_tmdb_season_episode(meta.get('tmdb'), guess_date)
-                        # season = f"S{season_int.zfill(2)}"
-                        # episode = f"E{episode_int.zfill(2)}"
                         season = str(guess_date)
                         episode = ""
                         is_daily = True
@@ -2179,7 +2136,6 @@ class Prep():
             else:
                 #If Anime
                 parsed = anitopy.parse(Path(video).name)
-                # romaji, mal_id, eng_title, seasonYear, anilist_episodes = self.get_romaji(guessit(parsed['anime_title'], {"excludes" : ["country", "language"]})['title'])
                 romaji, mal_id, eng_title, seasonYear, anilist_episodes = self.get_romaji(parsed['anime_title'], meta.get('mal', None))
                 if mal_id:
                     meta['mal_id'] = mal_id
@@ -2189,13 +2145,7 @@ class Prep():
                 meta = await self.tmdb_other_meta(meta)
                 if meta['category'] != "TV":
                     return meta
-
-                # meta['title'] = eng_title
-                # difference = SequenceMatcher(None, eng_title, romaji.lower()).ratio()
-                # if difference >= 0.8:
-                #     meta['aka'] = ""
-                # else:
-                #     meta['aka'] = f" AKA {romaji}"
+                
                 tag = parsed.get('release_group', "")
                 if tag != "":
                     meta['tag'] = f"-{tag}"
@@ -2237,7 +2187,6 @@ class Prep():
                                 'id' : str(meta['tvdb_id']),
                                 'origin' : 'tvdb',
                                 'absolute' : str(episode_int),
-                                # 'destination' : 'tvdb'
                             }
                             url = "https://thexem.info/map/single"
                             response = requests.post(url, params=params).json()
@@ -2304,16 +2253,6 @@ class Prep():
                         console.print(f"[bold yellow]{meta['title']} does not exist on thexem, guessing {season}")
                         console.print(f"[bold yellow]If [green]{season}[/green] is incorrect, use --season to correct")
                         await asyncio.sleep(3)
-                # try:
-                #     version = parsed['release_version']
-                #     if int(version) == 2:
-                #         meta['repack'] = "REPACK"
-                #     elif int(version) > 2:
-                #         meta['repack'] = f"REPACK{int(version) - 1}"
-                #     # version = f"v{version}"
-                # except Exception:
-                #     # version = ""
-                #     pass
                     
             if meta.get('manual_season', None) == None:
                 meta['season'] = season
@@ -2327,8 +2266,6 @@ class Prep():
                 meta['episode'] = f"E{meta['manual_episode'].lower().replace('e', '').zfill(2)}"
                 meta['tv_pack'] = 0
             
-            # if " COMPLETE " in Path(video).name.replace('.', ' '):
-            #     meta['season'] = "COMPLETE"
             meta['season_int'] = season_int
             meta['episode_int'] = episode_int
 
@@ -2411,8 +2348,6 @@ class Prep():
         if service_longname == "Amazon Prime":
             service_longname = "Amazon"
         return service, service_longname
-
-
 
     def stream_optimized(self, stream_opt):
         if stream_opt == True:
@@ -2602,9 +2537,6 @@ class Prep():
         else:
             console.print(f"[yellow]Unable to map the date ([bold yellow]{str(date)}[/bold yellow]) to a Season/Episode number")
         return season, episode
-
-
-
 
     async def get_imdb_info(self, imdbID, meta):
         imdb_info = {}
