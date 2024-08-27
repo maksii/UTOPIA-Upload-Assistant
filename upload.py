@@ -147,8 +147,7 @@ async def do_the_thing(base_dir):
         meta['name_notag'], meta['name'], meta['clean_name'], meta['potential_missing'] = await prep.get_name(meta)
 
         if meta.get('image_list', False) in (False, []) and meta.get('skip_imghost_upload', False) == False:
-            return_dict = {}
-            meta['image_list'] = prep.upload_screens(meta, meta['screens'], 1, 0, meta['screens'],[], return_dict)
+            meta['image_list'] = prep.upload_screens(meta)
             if meta['debug']:
                 console.print(meta['image_list'])
         elif meta.get('skip_imghost_upload', False) == True and meta.get('image_list', False) == False:

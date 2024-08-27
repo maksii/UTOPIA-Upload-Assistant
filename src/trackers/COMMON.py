@@ -47,6 +47,10 @@ class COMMON():
             Torrent.copy(new_torrent).write(output_path, overwrite=True)
 
     def generate_images_text(images, screen_count, size):
+        if not isinstance(images, list):
+            print("[bold][red]WARN[/red]: No Screenshots was provided for Description.[/bold]")
+            return ""
+    
         images_text = ""
         for image in images[:screen_count]:
             web_url = image['web_url']
