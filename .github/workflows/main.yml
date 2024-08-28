@@ -32,9 +32,14 @@ jobs:
       run: pip install pyinstaller
 
     - name: Save build number
+      shell: pwsh
       run: |
         $BUILD_NUMBER = "$(Get-Date -Format 'yyyyMMddHHmmss')"
-        echo "__version__ = '$BUILD_NUMBER'" > src/utils/version.py
+        $versionFilePath = "src/utils/version.py"
+        if (-Not (Test-Path -Path (Split-Path -Parent $versionFilePath))) {
+            New-Item -ItemType Directory -Path (Split-Path -Parent $versionFilePath) -Force
+        }
+        echo "__version__ = '$BUILD_NUMBER'" > $versionFilePath
 
     - name: Build executable
       run: pyinstaller upload.spec
