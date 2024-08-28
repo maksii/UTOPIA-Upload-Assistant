@@ -14,7 +14,7 @@ import re
 import platform
 import shutil
 import glob
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.console import console
 from rich.markdown import Markdown
@@ -53,6 +53,24 @@ def check_new_version():
         response = requests.get(repo_url)
         response.raise_for_status()  # Raise an error for bad responses
         latest_release = response.json()
+        
+        # Check if running from a frozen executable
+        if getattr(sys, 'frozen', False):
+            release_date_str = latest_release['published_at']
+            release_date = datetime.strptime(release_date_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+            current_time = datetime.now(timezone.utc)
+            days_since_release = (current_time - release_date).days
+            content = (
+                "[bold magenta]Welcome to UTOPIA-Upload-Assistant![/bold magenta]\n\n"
+                "It looks like you're running this tool from a console or docker.\n"
+                f"The latest release was {days_since_release} days ago.\n"
+                "To ensure you're using the latest features and improvements, please check the latest commits or Docker image manually.\n\n"
+                "[bold cyan]Visit our repository:[/bold cyan] [link=https://github.com/maksii/UTOPIA-Upload-Assistant]GitHub Repository[/link]\n"
+                "[bold cyan]Check Docker images:[/bold cyan] [link=https://hub.docker.com/r/maksii/utopia-upload-assistant]Docker Hub[/link]"
+            )
+            panel = Panel(content, title="[bold magenta]Greetings![/bold magenta]", border_style="magenta")
+            console.print(panel)
+            return
 
         latest_version = latest_release['tag_name']
 
