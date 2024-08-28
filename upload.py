@@ -1,8 +1,10 @@
+import requests
 from src.args import Args
 from src.clients import Clients
 from src.prep import Prep
 from src.trackers.COMMON import COMMON
 from src.trackers.UTOPIA import UTOPIA
+from src.utils.version import __version__
 import json
 from pathlib import Path
 import asyncio
@@ -12,6 +14,7 @@ import re
 import platform
 import shutil
 import glob
+from datetime import datetime
 
 from src.console import console
 from rich.markdown import Markdown
@@ -44,7 +47,33 @@ except FileNotFoundError:
 client = Clients(config=config)
 parser = Args(config)
 
+def check_new_version():
+    try:
+        repo_url = "https://api.github.com/repos/maksii/UTOPIA-Upload-Assistant/releases/latest"
+        response = requests.get(repo_url)
+        response.raise_for_status()  # Raise an error for bad responses
+        latest_release = response.json()
+
+        latest_version = latest_release['tag_name']
+
+        if datetime.strptime(latest_version.lstrip("v"), "%Y%m%d%H%M%S") > datetime.strptime(__version__, "%Y%m%d%H%M%S"):
+            content = (
+                f"[bold green]New version found:[/bold green] {latest_version}\n\n"
+                f"[bold yellow]What's new:[/bold yellow]\n{latest_release['body']}\n\n"
+                f"[bold blue]Download here:[/bold blue] [link={latest_release['html_url']}]Click here[/link]"
+            )
+            panel = Panel(content, title="[bold green]Update Available[/bold green]", border_style="green")
+            console.print(panel)
+
+    except requests.exceptions.RequestException as e:
+        console.print(f"[bold red]Failed to fetch the latest version: {e}[/bold red]")
+    except FileNotFoundError:
+        console.print("[bold red]Version file not found.[/bold red]")
+    except Exception as e:
+        console.print(f"[bold red]An unexpected error occurred: {e}[/bold red]")
+
 async def do_the_thing(base_dir):
+    check_new_version()
     meta = dict()
     meta['base_dir'] = base_dir
     paths = []

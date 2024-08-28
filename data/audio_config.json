@@ -1,0 +1,44 @@
+{
+    "audio": {
+        "DTS": "DTS",
+        "AAC": "AAC",
+        "AAC LC": "AAC",
+        "AC-3": "DD",
+        "E-AC-3": "DD+",
+        "MLP FBA": "TrueHD",
+        "FLAC": "FLAC",
+        "Opus": "Opus",
+        "Vorbis": "Vorbis",
+        "PCM": "LPCM",
+        "LPCM Audio": "LPCM",
+        "Dolby Digital Audio": "DD",
+        "Dolby Digital Plus Audio": "DD+",
+        "Dolby TrueHD Audio": "TrueHD",
+        "DTS Audio": "DTS",
+        "DTS-HD Master Audio": "DTS-HD MA",
+        "DTS-HD High-Res Audio": "DTS-HD HRA",
+        "DTS:X Master Audio": "DTS:X"
+    },
+    "audio_extra": {
+        "XLL": "-HD MA",
+        "XLL X": ":X",
+        "ES": "-ES"
+    },
+    "format_extra": {
+        "JOC": " Atmos",
+        "16-ch": " Atmos",
+        "Atmos Audio": " Atmos"
+    },
+    "format_settings_extra": {
+        "Dolby Surround EX": "EX"
+    },
+    "commercial_names": {
+        "Dolby Digital": "DD",
+        "Dolby Digital Plus": "DD+",
+        "Dolby TrueHD": "TrueHD",
+        "DTS-ES": "DTS-ES",
+        "DTS-HD High": "DTS-HD HRA",
+        "Free Lossless Audio Codec": "FLAC",
+        "DTS-HD Master Audio": "DTS-HD MA"
+    }
+}
