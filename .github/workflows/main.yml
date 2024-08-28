@@ -76,7 +76,10 @@ jobs:
 
     - name: Determine if Pre-release
       id: prerelease_check
-      run: echo "IS_PRERELEASE=$([[ '${{ github.ref }}' != 'refs/heads/main' ]] && echo true || echo false)" >> $GITHUB_ENV
+      shell: pwsh
+      run: |
+        $isPreRelease = if ($env:GITHUB_REF -ne 'refs/heads/main') { 'true' } else { 'false' }
+        echo "IS_PRERELEASE=$isPreRelease" >> $env:GITHUB_ENV
 
     - name: Create GitHub Release
       id: create_release
