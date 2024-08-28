@@ -8,7 +8,7 @@ This is a fork of L4G's Upload Assistant for the UTOPIA tracker. The main differ
 * Removed configuration and code specific to other trackers, making this version focused on UTOPIA only.
 * Migrated hardcoded Python configuration (.py file) to a JSON-based approach.
 * Integration with PyInstaller for building a frozen executable
-* Docker - not tested
+* Docker update to latest image and libs with ondemand use
 * Removed Discord-related code from the project.(not in roadmap right now. will be restored only after full project stabilization and testing)
 * naming rules refactored and moved to json configuration
 

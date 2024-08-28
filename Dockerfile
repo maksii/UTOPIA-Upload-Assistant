@@ -38,4 +38,4 @@ RUN chown -R appuser:appgroup /UTOPIA-Upload-Assistant
 # Switch to the non-root user
 USER appuser
 
-CMD ["sh"]
+CMD ["tail", "-f", "/dev/null"]
