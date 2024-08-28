@@ -34,7 +34,8 @@ jobs:
     - name: Save build number
       shell: pwsh
       run: |
-        $BUILD_NUMBER = "$(Get-Date -Format 'yyyyMMddHHmmss')"
+        $BUILD_NUMBER = (Get-Date -Format 'yyyyMMddHHmmss')
+        echo "BUILD_NUMBER=$BUILD_NUMBER" >> $env:GITHUB_ENV
         $versionFilePath = "src/utils/version.py"
         if (-Not (Test-Path -Path (Split-Path -Parent $versionFilePath))) {
             New-Item -ItemType Directory -Path (Split-Path -Parent $versionFilePath) -Force

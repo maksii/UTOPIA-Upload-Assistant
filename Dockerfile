@@ -7,8 +7,8 @@ RUN apk add --no-cache mono --repository http://dl-cdn.alpinelinux.org/alpine/ed
 RUN apk add --no-cache --upgrade \
     ffmpeg mediainfo python3 git py3-pip python3-dev python3-tkinter g++ cargo mktorrent rust \
     && apk add --no-cache mono --repository http://dl-cdn.alpinelinux.org/alpine/edge/testing
-    && addgroup -S appgroup \
-    && adduser -S appuser -G appgroup
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Set the timezone
 ENV TZ=Europe/Kiev
