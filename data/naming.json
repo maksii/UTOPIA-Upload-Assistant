@@ -34,28 +34,28 @@
                 ]
             },
             "HDDVD": {
-                "template": "{title} {aka} {year} {edition} {repack} DVDRemux",
+                "template": "{title} {aka} {year} {edition} {repack} DVDRemux {resolution}",
                 "potential_missing": [
                     "edition",
                     "description"
                 ]
             },
             "PAL DVD": {
-                "template": "{title} {alt_title} {year} {edition} {repack} {source} DVDRemux  {audio}",
+                "template": "{title} {aka} {year} {edition} {repack} {source} DVDRemux {resolution} {audio}",
                 "potential_missing": [
                     "edition",
                     "description"
                 ]
             },
             "NTSC DVD": {
-                "template": "{title} {alt_title} {year} {edition} {repack} {source} DVDRemux  {audio}",
+                "template": "{title} {aka} {year} {edition} {repack} {source} DVDRemux {resolution} {audio}",
                 "potential_missing": [
                     "edition",
                     "description"
                 ]
             },
             "DVD": {
-                "template": "{title} {alt_title} {year} {edition} {repack} {source} DVDRemux  {audio}",
+                "template": "{title} {aka} {year} {edition} {repack} {source} DVDRemux {resolution} {audio}",
                 "potential_missing": [
                     "edition",
                     "description"
@@ -124,28 +124,28 @@
                 ]
             },
             "HDDVD": {
-                "template": "{title} {aka} {season}{episode} {episode_title} {year} {edition} {repack} DVDRemux",
+                "template": "{title} {aka} {season}{episode} {year} {edition} {repack} DVDRemux {resolution}",
                 "potential_missing": [
                     "edition",
                     "description"
                 ]
             },
             "PAL DVD": {
-                "template": "{title} {alt_title} {year} {edition} {repack} {source} DVDRemux  {audio}",
+                "template": "{title} {aka} {season}{episode} {year} {edition} {repack} DVDRemux {resolution} {audio}",
                 "potential_missing": [
                     "edition",
                     "description"
                 ]
             },
             "NTSC DVD": {
-                "template": "{title} {alt_title} {year} {edition} {repack} {source} DVDRemux  {audio}",
+                "template": "{title} {aka} {season}{episode} {year} {edition} {repack} DVDRemux {resolution} {audio}",
                 "potential_missing": [
                     "edition",
                     "description"
                 ]
             },
             "DVD": {
-                "template": "{title} {alt_title} {year} {edition} {repack} {source} DVDRemux  {audio}",
+                "template": "{title} {aka} {season}{episode} {year} {edition} {repack} DVDRemux {resolution} {audio}",
                 "potential_missing": [
                     "edition",
                     "description"
@@ -153,28 +153,28 @@
             }
         },
         "ENCODE": {
-            "template": "{title} {year} {aka} {season}{episode} {episode_title} {edition} {repack} {resolution} BDRip {hdr} {video_encode}",
+            "template": "{title} {aka} {season}{episode} {year} {edition} {repack} BDRip {resolution} {hdr} {video_encode}",
             "potential_missing": [
                 "edition",
                 "description"
             ]
         },
         "WEBDL": {
-            "template": "{title} {aka} {season}{episode} {episode_title} {year} {edition} {repack} {service} WEB-DL {resolution} {hdr}",
+            "template": "{title} {aka} {season}{episode} {year} {edition} {repack} {service} WEB-DL {resolution} {hdr}",
             "potential_missing": [
                 "edition",
                 "service"
             ]
         },
         "WEBRIP": {
-            "template": "{title} {aka} {season}{episode} {episode_title} {year} {edition} {repack} {service} WEBRip {resolution} {hdr}",
+            "template": "{title} {aka} {season}{episode} {year} {edition} {repack} {service} WEBRip {resolution} {hdr}",
             "potential_missing": [
                 "edition",
                 "service"
             ]
         },
         "HDTV": {
-            "template": "{title} {year} {aka} {season}{episode} {episode_title} {edition} {repack} {resolution} HDTV {audio} {video_encode}",
+            "template": "{title} {aka} {season}{episode} {year} {edition} {repack} {resolution} HDTV {audio} {video_encode}",
             "potential_missing": [
             ]
         }

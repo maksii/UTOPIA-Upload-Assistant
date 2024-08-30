@@ -1,0 +1,55 @@
+{
+    "cuts": {
+        "director cut": "Director's Cut",
+        "extended": "Extended",
+        "special edition": "Special Edition",
+        "unrated": "Unrated",
+        "uncut": "Uncut",
+        "super duper": "Super Duper Cut"
+    },
+    "ai_upscale_keywords": [
+        " AI ",
+        "UPSCALE"
+    ],
+    "repack_keywords": {
+        "REPACK": [
+            "REPACK",
+            " REPACK ",
+            "[REPACK]",
+            "V2"
+        ],
+        "REPACK2": [
+            "REPACK2",
+            " REPACK2 ",
+            "[REPACK2]",
+            "V3"
+        ],
+        "REPACK3": [
+            "REPACK3",
+            " REPACK3 ",
+            "[REPACK3]",
+            "V4"
+        ],
+        "PROPER": [
+            "PROPER",
+            " PROPER "
+        ],
+        "PROPER2": [
+            "PROPER2",
+            " PROPER2 "
+        ],
+        "RERIP": [
+            "RERIP",
+            " RERIP "
+        ],
+        "RERIP2": [
+            "RERIP2",
+            " RERIP2 "
+        ]
+    },
+    "ratios": {
+        "IMAX": "IMAX",
+        "OPEN MATTE": "Open Matte",
+        "MAR": "MAR"
+    }
+}

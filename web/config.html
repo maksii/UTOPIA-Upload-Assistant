@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Configuration Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <style>
+        .form-section {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-5">
+        <h2 class="mb-4">JSON Configuration Generator</h2>
+        <h4><a href="./">Argument Generator</a></h4>
+        <!-- First Row -->
+        <div class="row form-section">
+            <div class="col-2">
+                <h4>API Key Configuration</h4>
+                <div id="api-keys" class="mb-3"></div>
+            </div>
+            <div class="col-2">
+                <h4>Image Host Order</h4>
+                <div id="image-host-order" class="mb-3"></div>
+            </div>
+            <div class="col-2">
+                <h4>General Settings</h4>
+                <div id="general-settings" class="mb-3"></div>
+            </div>
+            <div class="col-6">
+                <h4>Signatures</h4>
+                <div id="signatures" class="mb-3"></div>
+            </div>
+
+        </div>
+
+        <!-- Second Row -->
+        <div class="row form-section">
+            <div class="col-md-6">
+                <h4>Torrent Clients</h4>
+                <div id="torrent-clients" class="mb-3"></div>
+            </div>
+            <div class="col-md-6">
+                <h4>Trackers</h4>
+                <div id="trackers" class="mb-3"></div>
+            </div>
+        </div>
+
+        <!-- JSON Output -->
+        <div class="form-section">
+            <h4>Generated JSON</h4>
+            <textarea id="generated-json" class="form-control" rows="10" readonly></textarea>
+        </div>
+
+        <button class="btn btn-primary" onclick="generateJson()">Generate JSON</button>
+    </div>
+
+    <script>
+        const config = {
+            "DEFAULT": {
+                "tmdb_api": "tmdb api key",
+                "utppm_api": "utp.pm api key",
+                "imgbb_api": "imgbb api key",
+                "ptpimg_api": "ptpimg api key",
+                "lensdump_api": "lensdump api key",
+                "ptscreens_api": "ptscreens_API_KEY", 
+                "oeimg_api": "oeimg_API_KEY", 
+                "img_host_1": "imgbb", 
+                "img_host_2": "imgbox",
+                "img_host_3": "oeimg",
+                "img_host_4": "utppm",
+                "img_host_5": "pixhost",
+                "img_host_6": "ptscreens",
+                "img_host_7": "lensdump",
+                "img_host_8": "ptpimg",
+                "screens": "6",
+                "img_size" : "500",
+                "optimize_images": "True",
+                "default_torrent_client": "qbit",
+                "sfx_on_prompt": "True",
+                "use_global_sigs": "True",     
+                "global_sig": "\n[center][url=https://utp.to/forums/topics/76]Created by UTOPIA Upload Assistant[/url][/center]", 
+                "global_anon_sig": "\n[center][url=https://utp.to/forums/topics/76]Created by UTOPIA Upload Assistant[/url][/center]",
+                "global_pr_sig": "\n[center][url=https://utp.to/forums/topics/76]Created by UTOPIA Upload Assistant[/url][/center]",
+                "global_anon_pr_sig": "\n[center][url=https://utp.to/forums/topics/76]Created by UTOPIA Upload Assistant[/url][/center]"
+            },
+            "TRACKERS": {
+                "default_trackers": "UTOPIA",
+                "UTOPIA": {
+                    "useAPI": "True",
+                    "api_key": "utopia api key",
+                    "announce_url": "https://utp.to/announce/1"
+                }
+            },
+            "TORRENT_CLIENTS": {
+                "qbit": {
+                    "torrent_client": "qbit",
+                    "enable_search": "True",
+                    "qbit_url": "http://127.0.0.1",
+                    "qbit_port": "8080",
+                    "qbit_user": "username",
+                    "qbit_pass": "password",
+                    "qbit_tag" : "UTP",
+                    "qbit_cat" : "release",
+                    "local_path" : "c:\\Downloads\\upload",
+                    "remote_path" : "/smb/Downloads/upload"
+                },
+                "rtorrent": {
+                    "torrent_client": "rtorrent",
+                    "rtorrent_url": "https://user:password@server.host.tld:443/username/rutorrent/plugins/httprpc/action.php",
+                    "torrent_storage_dir": "C:\\Upload\\torrents"
+                }
+            }
+        };
+
+        function createInputField(id, value) {
+            return `<div class="form-group mb-3"><label>${id}</label><input type="text" class="form-control mb-2" id="${id}" value="${value}" placeholder="${id}"></div>`;
+        }
+
+        function populateForm() {
+            const apiKeys = document.getElementById('api-keys');
+            const imageHostOrder = document.getElementById('image-host-order');
+            const signatures = document.getElementById('signatures');
+            const generalSettings = document.getElementById('general-settings');
+            const torrentClients = document.getElementById('torrent-clients');
+            const trackers = document.getElementById('trackers');
+
+            for (const [key, value] of Object.entries(config.DEFAULT)) {
+                if (key.includes('_api')) {
+                    apiKeys.innerHTML += createInputField(key, value);
+                } else if (key.includes('_host_')) {
+                    imageHostOrder.innerHTML += createInputField(key, value);
+                } else if (key.includes('_sig')) {
+                    signatures.innerHTML += createInputField(key, value);
+                } else {
+                    generalSettings.innerHTML += createInputField(key, value);
+                }
+            }
+
+            for (const [client, settings] of Object.entries(config.TORRENT_CLIENTS)) {
+                torrentClients.innerHTML += `<h5>${client}</h5>`;
+                for (const [key, value] of Object.entries(settings)) {
+                    torrentClients.innerHTML += createInputField(`${client}_${key}`, value);
+                }
+            }
+
+            for (const [tracker, settings] of Object.entries(config.TRACKERS)) {
+                if (tracker !== 'default_trackers') {
+                    trackers.innerHTML += `<h5>${tracker}</h5>`;
+                    for (const [key, value] of Object.entries(settings)) {
+                        trackers.innerHTML += createInputField(`${tracker}_${key}`, value);
+                    }
+                }
+            }
+        }
+
+        function generateJson() {
+            const output = {};
+            output.DEFAULT = {};
+            output.TORRENT_CLIENTS = {};
+            output.TRACKERS = {};
+
+            for (const key in config.DEFAULT) {
+                output.DEFAULT[key] = document.getElementById(key).value;
+            }
+
+            for (const client in config.TORRENT_CLIENTS) {
+                output.TORRENT_CLIENTS[client] = {};
+                for (const key in config.TORRENT_CLIENTS[client]) {
+                    output.TORRENT_CLIENTS[client][key] = document.getElementById(`${client}_${key}`).value;
+                }
+            }
+
+            for (const tracker in config.TRACKERS) {
+                if (tracker !== 'default_trackers') {
+                    output.TRACKERS[tracker] = {};
+                    for (const key in config.TRACKERS[tracker]) {
+                        output.TRACKERS[tracker][key] = document.getElementById(`${tracker}_${key}`).value;
+                    }
+                }
+            }
+
+            document.getElementById('generated-json').value = JSON.stringify(output, null, 2);
+        }
+
+        populateForm();
+    </script>
+
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

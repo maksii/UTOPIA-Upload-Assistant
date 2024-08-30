@@ -53,7 +53,7 @@ class COMMON():
         for image in images[:screen_count]:
             web_url = image['web_url']
             raw_url = image['raw_url']
-            images_text += f"[url={web_url}][img={size}]{raw_url}[/img][/url]"
+            images_text += f"[url={raw_url}][img={size}]{web_url}[/img][/url]"
         return images_text
     
     async def unit3d_edit_desc(self, meta, tracker, comparison=False, desc_header=""):
@@ -190,7 +190,7 @@ class COMMON():
         url = f"{torrent_url}{id}"
 
         try:
-            response = requests.get(url=url, params=params)
+            response = requests.get(url=url, params=params, timeout=30)
             response.raise_for_status()  # Ensure a successful HTTP response
             data = response.json()
             attributes = data.get('attributes', {})

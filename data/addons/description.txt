@@ -1,0 +1,7 @@
+[center][note][color=Dodgerblue][b]Source: [/b][/color][/note][/center]
+[center][note]%SCREENS%[/note][/center]
+[center][note][color=Dodgerblue][b]
+
+Thanks and other information about the release
+
+[/b][/color][/note][/center]

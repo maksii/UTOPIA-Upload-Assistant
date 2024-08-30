@@ -68,10 +68,11 @@ class Clients():
         client = self.config['TORRENT_CLIENTS'][default_torrent_client]
         torrent_storage_dir = client.get('torrent_storage_dir', None)
         torrent_client = client.get('torrent_client', None).lower()
-        if torrent_storage_dir == None and torrent_client != "watch":
+        #TBD why it's torrent_client != "watch" ??? should it trigger ONLY if watch mode?
+        if torrent_storage_dir == None and torrent_client == "watch":
             console.print(f'[bold red]Missing torrent_storage_dir for {default_torrent_client}')
             return None
-        elif not os.path.exists(str(torrent_storage_dir)) and torrent_client != "watch":
+        elif not os.path.exists(str(torrent_storage_dir)) and torrent_client == "watch":
             console.print(f"[bold red]Invalid torrent_storage_dir path: [bold yellow]{torrent_storage_dir}")
         torrenthash = None
         if torrent_storage_dir != None and os.path.exists(torrent_storage_dir):
@@ -160,7 +161,7 @@ class Clients():
     async def search_qbit_for_torrent(self, meta, client):
         console.print("[green]Searching qbittorrent for an existing .torrent")
         torrent_storage_dir = client.get('torrent_storage_dir', None)
-        if torrent_storage_dir == None and client.get("torrent_client", None) != "watch":
+        if torrent_storage_dir == None and client.get("torrent_client", None) == "watch":
             console.print(f"[bold red]Missing torrent_storage_dir for {self.config['DEFAULT']['default_torrent_client']}")
             return None
         
