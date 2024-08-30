@@ -21,7 +21,7 @@ class UTPpmProvider(ImageHostProvider):
         response.raise_for_status()
         response = response.json()
         return {
-            'web_url': response.get('medium', response['image'])['url'],
+            'web_url': response['image']['medium']['url'],
             'img_url': response['image']['url_viewer'],
             'raw_url': response['image']['url']
         }

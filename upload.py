@@ -55,7 +55,7 @@ def check_new_version():
         latest_release = response.json()
         
         # Check if running from a frozen executable
-        if getattr(sys, 'frozen', False):
+        if getattr(sys, 'frozen', True):
             release_date_str = latest_release['published_at']
             release_date = datetime.strptime(release_date_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
             current_time = datetime.now(timezone.utc)
