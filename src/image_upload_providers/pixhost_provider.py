@@ -19,7 +19,7 @@ class PiXhostProvider(ImageHostProvider):
             'img': ('file-upload[0]', open(image_path, 'rb')),
         }
         
-        response = requests.post(url, data=data, files=files)
+        response = requests.post(url, data=data, files=files, timeout=30)
         response.raise_for_status()
         response = response.json()
         return {

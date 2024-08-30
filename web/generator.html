@@ -9,17 +9,18 @@
 </head>
 <body>
     <div class="container-fluid mt-5">
-        <h1>Command Line Argument Generator</h1>
+        <h2>Command Line Argument Generator</h1> <h4><a href="./config.html">Config Generator</a></h4>
         <div class="form-group">
             <label for="commandOutput">Generated Command</label>
             <textarea class="form-control" id="commandOutput" rows="2" readonly>upload.exe</textarea>
         </div>
+        <button id="generateCommand" class="btn btn-primary mt-3">Generate Command</button>
         <form class="mt-4">
             <div class="row" id="argumentForm">
             <!-- Generated form fields will go here -->
             </div>
         </form>
-        <button id="generateCommand" class="btn btn-primary mt-3">Generate Command</button>
+        
     </div>
 
     <script type="module">
@@ -39,22 +40,22 @@
             new Argument('path', '*', 'Path to file/directory', true, 'str', null, 'General'),
             new Argument('debug', '', 'Debug Mode, will run through all the motions providing extra info, but will not upload to trackers.', false, 'bool', null, 'General'),
             new Argument('screens', '*', 'Number of screenshots', false, 'int', null, 'Images / Description'),
-            new Argument('imghost', '*', 'Image Host', false, 'choices', ['utppm', 'imgbb', 'ptpimg', 'imgbox', 'pixhost', 'lensdump'], 'Images / Description'),
-            new Argument('skip_imghost_upload', '', 'Skip Uploading to an image host', false, 'bool', null, 'Images / Description'),
-            new Argument('category', '*', 'Category', false, 'choices', ['movie', 'tv'], 'General'),
-            new Argument('type', '*', 'Type', false, 'choices', ['disc', 'remux', 'encode', 'webdl', 'webrip', 'hdtv'], 'General'),
-            new Argument('manual_source', '*', 'Source', false, 'choices', ['BluRay', 'DVD', 'HDDVD', 'WEB', 'HDTV', 'UHDTV'], 'General'),
-            new Argument('resolution', '*', 'Resolution', false, 'choices', ['2160p', '1080p','8640p', '4320p', '1080i', '720p'], 'General'),
-            new Argument('tmdb_manual', '*', 'TMDb ID', false, 'str', null, 'Metadata'),
+            new Argument('imghost', '*', 'Image Host', false, 'choices', ['','utppm', 'imgbb', 'ptpimg', 'imgbox', 'pixhost', 'lensdump'], 'Images / Description'),
+            new Argument('skip-imagehost-upload', '', 'Skip Uploading to an image host', false, 'bool', null, 'Images / Description'),
+            new Argument('category', '*', 'Category', false, 'choices', ['','movie', 'tv'], 'General'),
+            new Argument('type', '*', 'Type', false, 'choices', ['','disc', 'remux', 'encode', 'webdl', 'webrip', 'hdtv'], 'General'),
+            new Argument('source', '*', 'Source', false, 'choices', ['','BluRay', 'DVD', 'HDDVD', 'WEB', 'HDTV', 'UHDTV'], 'General'),
+            new Argument('resolution', '*', 'Resolution', false, 'choices', ['','2160p', '1080p','8640p', '4320p', '1080i', '720p'], 'General'),
+            new Argument('tmdb', '*', 'TMDb ID', false, 'str', null, 'Metadata'),
             new Argument('imdb', '*', 'IMDb ID', false, 'str', null, 'Metadata'),
             new Argument('mal', '*', 'MAL ID', false, 'str', null, 'Metadata'),
             new Argument('tag', '*', 'Group Tag', false, 'str', null, 'General'),
             new Argument('service', '*', 'Streaming Service', false, 'str', null, 'General'),
             new Argument('distributor', '*', 'Disc Distributor e.g.(Criterion, BFI, etc.)', false, 'str', null, 'General'),
-            new Argument('manual_edition', '*', 'Edition/Repack String e.g.(Director\'s Cut, Uncut, Hybrid, REPACK, REPACK3)', false, 'str', null, 'General'),
+            new Argument('edition', '*', 'Edition/Repack String e.g.(Director\'s Cut, Uncut, Hybrid, REPACK, REPACK3)', false, 'str', null, 'General'),
             new Argument('season', '*', 'Season (number)', false, 'str', null, 'Metadata'),
             new Argument('episode', '*', 'Episode (number)', false, 'str', null, 'Metadata'),
-            new Argument('manual_date', '1', 'Air date of this episode (YYYY-MM-DD)', false, 'date', null, 'Metadata'),
+            new Argument('daily', '1', 'Air date of this episode (YYYY-MM-DD)', false, 'date', null, 'Metadata'),
             new Argument('no-season', '', 'Remove Season from title', false, 'bool', null, 'Upload Options'),
             new Argument('no-year', '', 'Remove Year from title', false, 'bool', null, 'Upload Options'),
             new Argument('no-aka', '', 'Remove AKA from title', false, 'bool', null, 'Upload Options'),
@@ -76,83 +77,92 @@
             new Argument('hardcoded-subs', '', 'Contains hardcoded subs', false, 'bool', null, 'Metadata'),
             new Argument('personalrelease', '', 'Personal Release', false, 'bool', null, 'Upload Options'),
             new Argument('dupe', '', 'Pass if you know this is a dupe (Skips dupe check)', false, 'bool', null, 'Upload Options'),
-            new Argument('qbit_tag', '*', 'Add to qbit with this tag', false, 'str', null, 'Upload Options'),
-            new Argument('qbit_cat', '*', 'Add to qbit with this category', false, 'str', null, 'Upload Options'),
-            new Argument('rtorrent_label', '*', 'Add to rtorrent with this label', false, 'str', null, 'Upload Options'),
+            new Argument('qbit-tag', '*', 'Add to qbit with this tag', false, 'str', null, 'Upload Options'),
+            new Argument('qbit-cat', '*', 'Add to qbit with this category', false, 'str', null, 'Upload Options'),
+            new Argument('rtorrent-label', '*', 'Add to rtorrent with this label', false, 'str', null, 'Upload Options'),
             new Argument('cleanup', '', 'Clean up tmp directory', false, 'bool', null, 'Upload Options'),
         ];
 
         const form = document.getElementById('argumentForm');
-        const commandOutput = document.getElementById('commandOutput');
+const commandOutput = document.getElementById('commandOutput');
 
-        const groupedArguments = argumentsList.reduce((acc, arg) => {
-            if (!acc[arg.functionality]) {
-                acc[arg.functionality] = [];
-            }
-            acc[arg.functionality].push(arg);
-            return acc;
-        }, {});
+const groupedArguments = argumentsList.reduce((acc, arg) => {
+    if (!acc[arg.functionality]) {
+        acc[arg.functionality] = [];
+    }
+    acc[arg.functionality].push(arg);
+    return acc;
+}, {});
 
-        for (const [functionality, args] of Object.entries(groupedArguments)) {
-            const container = document.createElement('div');
-            container.classList.add('card', 'mb-4', 'col-3');
-            container.innerHTML = `<div class="card-header">${functionality}</div>`;
+for (const [functionality, args] of Object.entries(groupedArguments)) {
+    const container = document.createElement('div');
+    container.classList.add('card', 'mb-4', 'col-3');
+    container.innerHTML = `<div class="card-header">${functionality}</div>`;
 
-            const cardBody = document.createElement('div');
-            cardBody.classList.add('card-body');
+    const cardBody = document.createElement('div');
+    cardBody.classList.add('card-body');
 
-            args.forEach(arg => {
-                const formGroup = document.createElement('div');
-                formGroup.classList.add('form-group', 'mb-3');
+    args.forEach(arg => {
+        const formGroup = document.createElement('div');
+        formGroup.classList.add('form-group', 'mb-3');
 
-                const label = document.createElement('label');
-                label.textContent = arg.help;
-                formGroup.appendChild(label);
+        const label = document.createElement('label');
+        label.textContent = arg.help;
+        formGroup.appendChild(label);
 
-                let input;
-                if (arg.type === 'bool') {
-                    input = document.createElement('input');
-                    input.type = 'checkbox';
-                    input.classList.add('form-check-input');
-                } else if (arg.type === 'choices') {
-                    input = document.createElement('select');
-                    input.classList.add('form-control');
-                    arg.choices.forEach(choice => {
-                        const option = document.createElement('option');
-                        option.value = choice;
-                        option.textContent = choice;
-                        input.appendChild(option);
-                    });
-                } else {
-                    input = document.createElement('input');
-                    input.type = arg.type === 'int' ? 'number' : arg.type;
-                    input.classList.add('form-control');
-                }
-
-                input.id = arg.name;
-                input.name = arg.name;
-                formGroup.appendChild(input);
-                cardBody.appendChild(formGroup);
+        let input;
+        if (arg.type === 'bool') {
+            input = document.createElement('input');
+            input.type = 'checkbox';
+            input.classList.add('form-check-input');
+        } else if (arg.type === 'choices') {
+            input = document.createElement('select');
+            input.classList.add('form-control');
+            input.setAttribute('data-dirty', 'false');
+            arg.choices.forEach(choice => {
+                const option = document.createElement('option');
+                option.value = choice;
+                option.textContent = choice;
+                input.appendChild(option);
             });
-
-            container.appendChild(cardBody);
-            form.appendChild(container);
+            // Add event listener to track changes
+            input.addEventListener('change', () => {
+                input.setAttribute('data-dirty', 'true');
+            });
+        } else {
+            input = document.createElement('input');
+            input.type = arg.type === 'int' ? 'number' : arg.type;
+            input.classList.add('form-control');
         }
 
-        document.getElementById('generateCommand').addEventListener('click', () => {
-            let command = 'upload.exe';
-            argumentsList.forEach(arg => {
-                const input = document.getElementById(arg.name);
-                if (input.type === 'checkbox') {
-                    if (input.checked) {
-                        command += ` --${arg.name}`;
-                    }
-                } else if (input.value) {
-                    command += ` --${arg.name} ${input.value}`;
-                }
-            });
-            commandOutput.value = command;
-        });
+        input.id = arg.name;
+        input.name = arg.name;
+        formGroup.appendChild(input);
+        cardBody.appendChild(formGroup);
+    });
+
+    container.appendChild(cardBody);
+    form.appendChild(container);
+}
+
+document.getElementById('generateCommand').addEventListener('click', () => {
+    let command = 'upload.exe';
+    argumentsList.forEach(arg => {
+        const input = document.getElementById(arg.name);
+        if (input.type === 'checkbox') {
+            if (input.checked) {
+                command += ` --${arg.name}`;
+            }
+        } else if (input.type === 'select-one') {
+            if (input.getAttribute('data-dirty') === 'true' && input.value) {
+                command += ` --${arg.name} ${input.value}`;
+            }
+        } else if (input.value) {
+            command += ` --${arg.name} ${input.value}`;
+        }
+    });
+    commandOutput.value = command;
+});
     </script>
 </body>
 </html>

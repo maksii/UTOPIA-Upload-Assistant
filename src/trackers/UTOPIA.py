@@ -85,7 +85,7 @@ class UTOPIA():
         if not meta['debug']:
             success = 'Unknown'
             try:
-                response = requests.post(url=self.upload_url, files=files, data=data, headers=headers, params=params)
+                response = requests.post(url=self.upload_url, files=files, data=data, headers=headers, params=params, timeout=30)
                 response.raise_for_status()                
                 response_json = response.json()
                 success = response_json.get('success', False)
@@ -185,7 +185,7 @@ class UTOPIA():
         if meta.get('edition', "") != "":
             params['name'] = params['name'] + f" {meta['edition']}"
         try:
-            response = requests.get(url=self.search_url, params=params)
+            response = requests.get(url=self.search_url, params=params, timeout=30)
             response = response.json()
             for each in response['data']:
                 result = each['attributes']['name']

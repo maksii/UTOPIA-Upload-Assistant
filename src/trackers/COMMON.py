@@ -190,7 +190,7 @@ class COMMON():
         url = f"{torrent_url}{id}"
 
         try:
-            response = requests.get(url=url, params=params)
+            response = requests.get(url=url, params=params, timeout=30)
             response.raise_for_status()  # Ensure a successful HTTP response
             data = response.json()
             attributes = data.get('attributes', {})

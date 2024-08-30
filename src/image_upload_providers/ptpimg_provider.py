@@ -18,7 +18,7 @@ class PtpImgProvider(ImageHostProvider):
         headers = { 'referer': 'https://ptpimg.me/index.php'} 
         url = "https://ptpimg.me/upload.php"
         
-        response = requests.post(url, headers=headers, data=payload, files=files)
+        response = requests.post(url, headers=headers, data=payload, files=files, timeout=30)
         response.raise_for_status()
         response = response.json()
         ptpimg_code = response[0]['code'] 

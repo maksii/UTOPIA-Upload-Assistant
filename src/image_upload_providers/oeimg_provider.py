@@ -16,7 +16,7 @@ class OnlyImageProvider(ImageHostProvider):
             'image': base64.b64encode(open(image_path, "rb").read()).decode('utf8')
         }
         
-        response = requests.post(url, data=data)
+        response = requests.post(url, data=data, timeout=30)
         response.raise_for_status()
         response = response.json()
         return {

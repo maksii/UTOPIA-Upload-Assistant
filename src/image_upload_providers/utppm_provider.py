@@ -17,7 +17,7 @@ class UTPpmProvider(ImageHostProvider):
         headers = {
             'X-API-Key': self.api_key,
         }
-        response = requests.post(url, data=data, headers=headers)
+        response = requests.post(url, data=data, headers=headers, timeout=30)
         response.raise_for_status()
         response = response.json()
         return {

@@ -522,7 +522,7 @@ class Prep():
             if int(response.get('resultsCount', 0)) != 0:
                 video = f"{response['results'][0]['release']}.mkv"
                 scene = True
-                r = requests.get(f"https://api.srrdb.com/v1/imdb/{base}")
+                r = requests.get(f"https://api.srrdb.com/v1/imdb/{base}", timeout=30)
                 r = r.json()
                 if r['releases'] != [] and imdb == None:
                     imdb = r['releases'][0].get('imdb', imdb) if r['releases'][0].get('imdb') is not None else imdb
@@ -1316,7 +1316,7 @@ class Prep():
         # Make the HTTP Api request
         url = 'https://graphql.anilist.co'
         try:
-            response = requests.post(url, json={'query': query, 'variables': variables})
+            response = requests.post(url, json={'query': query, 'variables': variables}, timeout=30)
             json = response.json()
             media = json['data']['Page']['media']
         except:
@@ -2091,7 +2091,7 @@ class Prep():
                                 'absolute' : str(episode_int),
                             }
                             url = "https://thexem.info/map/single"
-                            response = requests.post(url, params=params).json()
+                            response = requests.post(url, params=params, timeout=30).json()
                             if response['result'] == "failure":
                                 raise Exception
                             if meta['debug']:
@@ -2106,7 +2106,7 @@ class Prep():
                             season = "S01"
                             season_int = "1"
                             names_url = f"https://thexem.info/map/names?origin=tvdb&id={str(meta['tvdb_id'])}"
-                            names_response = requests.get(names_url).json()
+                            names_response = requests.get(names_url, timeout=30).json()
                             if meta['debug']:
                                 console.log(f'[cyan]Matching Season Number from TheXEM\n{names_response}')
                             difference = 0
@@ -2288,7 +2288,7 @@ class Prep():
                 else:
                     raw = parsed._replace(path=f"/raw{parsed.path}")
                 raw = urllib.parse.urlunparse(raw)
-                description.write(requests.get(raw).text)
+                description.write(requests.get(raw, timeout=30).text)
                 description.write("\n")
                 meta['description'] = "CUSTOM"
                 
@@ -2492,7 +2492,7 @@ class Prep():
                 "q" : filename
             }
             url = f"https://api.tvmaze.com/search/shows"
-        resp = requests.get(url=url, params=params)
+        resp = requests.get(url=url, params=params, timeout=30)
         if resp.ok:
             resp = resp.json()
             if resp == None:

@@ -50,7 +50,7 @@ parser = Args(config)
 def check_new_version():
     try:
         repo_url = "https://api.github.com/repos/maksii/UTOPIA-Upload-Assistant/releases/latest"
-        response = requests.get(repo_url)
+        response = requests.get(repo_url, timeout=5)
         response.raise_for_status()  # Raise an error for bad responses
         latest_release = response.json()
         
