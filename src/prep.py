@@ -1690,9 +1690,9 @@ class Prep():
             format_profile = bdinfo['video'][0]['profile']
         if type in ("ENCODE", "WEBRIP"): #ENCODE or WEBRIP
             if format == 'AVC':
-                codec = 'x264'
+                codec = 'H.264'
             elif format == 'HEVC':
-                codec = 'x265'
+                codec = 'H.265'
         elif type in ('WEBDL', 'HDTV'): #WEB-DL
             if format == 'AVC':
                 codec = 'H.264'
@@ -1717,7 +1717,7 @@ class Prep():
             else:
                 video_encode = codec
         else:
-            video_encode = format
+            video_encode = codec
         video_codec = format
         if video_codec == "MPEG Video":
             video_codec = f"MPEG-{mi['media']['track'][1].get('Format_Version')}"

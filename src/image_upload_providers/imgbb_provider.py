@@ -17,9 +17,9 @@ class ImgBBProvider(ImageHostProvider):
         }
         response = requests.post(url, data=data, timeout=30)
         response.raise_for_status()
-        response_data = response.json()
+        response = response.json()
         return {
-            'web_url': response_data['data']['url_viewer'],
-            'img_url': response_data['data']['image']['url'],
-            'raw_url': response_data['data']['image']['url']
+            'web_url': response['data']['medium']['url'],
+            'img_url': response['data']['url_viewer'],
+            'raw_url': response['data']['image']['url']
         }
