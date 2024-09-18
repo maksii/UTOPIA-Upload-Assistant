@@ -21,8 +21,8 @@ class ImgBoxProvider(ImageHostProvider):
                     raise Exception(f"[red]There was an error uploading to ImgBox: [yellow]{submission['error']}[/yellow][/red]")
 
                 image_dict = {
-                    'web_url': submission['web_url'],
-                    'img_url': submission['thumbnail_url'],
+                    'web_url': submission['thumbnail_url'],
+                    'img_url': submission['web_url'],
                     'raw_url': submission['image_url']
                 }
                 return image_dict

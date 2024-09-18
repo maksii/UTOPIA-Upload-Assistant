@@ -20,7 +20,7 @@ class OnlyImageProvider(ImageHostProvider):
         response.raise_for_status()
         response = response.json()
         return {
-            'web_url': response['data'].get('medium', response['data']['image'])['url'],
+            'web_url': response['data']['thumb']['url'],
             'img_url': response['data']['url_viewer'],
             'raw_url': response['data']['image']['url']
         }
