@@ -11,6 +11,7 @@ from typing import Any, Optional, cast
 from urllib.parse import urlparse
 
 import aiofiles
+import cli_ui
 import httpx
 import langcodes
 import pycountry
@@ -92,10 +93,10 @@ class BJS:
                     content = await f.read()
                     data = json.loads(content)
             except json.JSONDecodeError:
-                print(f'Warning: Could not decode JSON from {localized_data_file}')
+                console.print(f'Warning: Could not decode JSON from {localized_data_file}', markup=False)
                 data = {}
             except Exception as e:
-                print(f'Error reading file {localized_data_file}: {e}')
+                console.print(f'Error reading file {localized_data_file}: {e}', markup=False)
                 data = {}
 
         main_ptbr_data = dict(data.get('pt-BR', {})).get('main', {})
@@ -325,8 +326,10 @@ class BJS:
         desc_parts.append(await builder.get_custom_header())
 
         # Logo
-        logo_resize_url = meta.get('tmdb_logo', '')
+        logo_resize_url = str(meta.get("tmdb_logo", ""))
         if logo_resize_url:
+            if logo_resize_url.endswith(".svg"):
+                logo_resize_url = logo_resize_url.replace(".svg", ".png")
             desc_parts.append(f"[align=center][img]https://image.tmdb.org/t/p/w300/{logo_resize_url}[/img][/align]")
 
         # TV
@@ -405,7 +408,8 @@ class BJS:
         return br_rating or us_rating or ''
 
     async def get_tags(self) -> str:
-        tags = ''
+        tags = ""
+
         genres_data: list[dict[str, Any]] = self.main_tmdb_data.get('genres', [])
         genre_names: list[str] = []
 
@@ -425,7 +429,8 @@ class BJS:
                 )
 
         if not tags:
-            tags = await self.common.async_input(prompt=f'Digite os gêneros (no formato do {self.tracker}): ')
+             tags_raw = await asyncio.to_thread(cli_ui.ask_string, f'Digite os gêneros (no formato do {self.tracker}): ')
+             tags = (tags_raw or "").strip()
 
         return tags
 
@@ -888,13 +893,13 @@ class BJS:
 
             return img_url
         except Exception as e:
-            print(f'Exceção no upload de {filename}: {e}')
+            console.print(f'Exceção no upload de {filename}: {e}', markup=False)
             return None
 
     async def get_cover(self, meta: dict[str, Any]):
         cover_path = self.main_tmdb_data.get('poster_path') or meta.get('tmdb_poster')
         if not cover_path:
-            print('Nenhum poster_path encontrado nos dados do TMDB.')
+            console.print('Nenhum poster_path encontrado nos dados do TMDB.', markup=False)
             return None
 
         cover_tmdb_url = f'https://image.tmdb.org/t/p/w500{cover_path}'
@@ -909,7 +914,7 @@ class BJS:
 
             return await self.img_host(image_bytes, filename)
         except Exception as e:
-            print(f'Falha ao processar pôster da URL {cover_tmdb_url}: {e}')
+            console.print(f'Falha ao processar pôster da URL {cover_tmdb_url}: {e}', markup=False)
             return None
 
     async def get_screenshots(self, meta: dict[str, Any]) -> list[str]:
@@ -933,7 +938,7 @@ class BJS:
                 filename = os.path.basename(urlparse(url).path) or "screenshot.png"
                 return await self.img_host(image_bytes, filename)
             except Exception as e:
-                print(f"Failed to process screenshot from URL {url}: {e}")
+                console.print(f"Failed to process screenshot from URL {url}: {e}", markup=False)
                 return None
 
         results: list[str] = []
@@ -1104,7 +1109,8 @@ class BJS:
             'Por favor, insira manualmente (separados por vírgula): '
         )
 
-        user_input = await self.common.async_input(prompt=prompt_message)
+        user_input_raw = await asyncio.to_thread(cli_ui.ask_string, f'{prompt_message}')
+        user_input = (user_input_raw or "").strip()
         if user_input:
             return user_input
 
@@ -1362,7 +1368,7 @@ class BJS:
 
         Accepted formats:
             IMDb: tt12345
-            TMDb: movie12345 or tv12345
+            TMDb: movie/12345 or tv/12345
         """
         imdb_info = dict(meta.get("imdb_info", {}))
         imdbid = str(imdb_info.get("imdbID", ""))
@@ -1373,7 +1379,7 @@ class BJS:
         tmdb_id = meta.get("tmdb_id")
 
         if category in ["MOVIE", "TV"] and tmdb_id:
-            return f"{category}{tmdb_id}".lower()
+            return f"{category}/{tmdb_id}".lower()
 
         return ""
 
@@ -1386,9 +1392,8 @@ class BJS:
             console.print(
                 f"{self.tracker}: [bold red]Sinopse não encontrada no TMDb. Por favor, insira manualmente.[/bold red]"
             )
-            user_input = await self.common.async_input(
-                prompt=f"{self.tracker}: [green]Digite a sinopse:[/green]"
-            )
+            user_input_raw = await asyncio.to_thread(cli_ui.ask_string, f'"{self.tracker}: [green]Digite a sinopse:[/green]"')
+            user_input = (user_input_raw or "").strip()
             if user_input:
                 return user_input
             return 'N/A'

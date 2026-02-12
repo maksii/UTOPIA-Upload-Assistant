@@ -1,3 +1,14 @@
+### NOTE:
+- This project is in development freeze. Only critical bugs will be addressed moving forward.
+- More details on the future of Upload Assistant will be available at a later date.
+- Thanks to all who have contributed to this project, to everyone who has used Upload Assistant and everyone who has shared this project for the benefit of others.
+- A special thankyou to all of the site staffers who have shown great patience and understanding, during the development of Upload Assistant. Each and everyone one of you, who fixed issues, and quietly addressed those same issues with me. I can't emphasize enough how that has allowed me to focus entirely on fixing the issues code side, and the boost to motivation that it gave.
+- To those of you who I will not name, working in tandem to bring new features to the ecosystem, you rock.
+- Specifically, to everyone at Aither. You're unwavering support has been truly appreciated.
+- Last but certainly not least, a huge thanks to @wastaken7, who contributed greatly to the success of Upload Assistant. Not only did wasteken7 being a whole suite of new site support, but he persistently maintained all of those sites. The sheer amount of refactoring work on the codebase, to increase the ease of development cannot be overstated.
+- Upload Assistant is not dead. I look forward to sharing a new chapter in the future.
+
+
 [![Create and publish a Docker image](https://github.com/Audionut/Upload-Assistant/actions/workflows/docker-image.yml/badge.svg?branch=master)](https://github.com/Audionut/Upload-Assistant/actions/workflows/docker-image.yml)
 [![Python Code Analysis](https://github.com/Audionut/Upload-Assistant/actions/workflows/python-code-analysis.yml/badge.svg?branch=master)](https://github.com/Audionut/Upload-Assistant/actions/workflows/python-code-analysis.yml)
 [![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://www.python.org/downloads/)
@@ -55,26 +66,26 @@ Many thanks to all who have contributed.
 |ImmortalSeed|IS|InfinityHD|IHD|
 |ItaTorrents|ITT|LastDigitalUnderground|LDU|
 |Lat-Team|LT|Locadora|LCD|
-|LST|LST|MoreThanTV|MTV|
-|Nebulance|NBL|OldToonsWorld|OTW|
-|OnlyEncodes+|OE|PassThePopcorn|PTP|
-|PolishTorrent|PTT|Portugas|PT|
-|PrivateHD|PHD|PTerClub|PTER|
-|PTSKIT|PTS|Racing4Everyone|R4E|
-|Rastastugan|RAS|ReelFLiX|RF|
-|RetroFlix|RTF|Samaritano|SAM|
-|seedpool|SP|ShareIsland|SHRI|
-|SkipTheCommerials|STC|SpeedApp|SPD|
-|Swarmazon|SN|The Leach Zone|TLZ|
-|TheOldSchool|TOS|ToTheGlory|TTG|
-|TorrentHR|THR|Torrenteros|TTR|
-|TorrentLeech|TL|TVChaosUK|TVC|
-|ULCX|ULCX|UTOPIA|UTP|
-|YOiNKED|YOINK|YUSCENE|YUS|
+|LST|LST|Luminarr|LUME|
+|MoreThanTV|MTV|Nebulance|NBL|
+|OldToonsWorld|OTW|OnlyEncodes+|OE|
+|PassThePopcorn|PTP|PolishTorrent|PTT|
+|Portugas|PT|PrivateHD|PHD|
+|PTerClub|PTER|PTSKIT|PTS|
+|Racing4Everyone|R4E|Rastastugan|RAS|
+|ReelFLiX|RF|RetroFlix|RTF|
+|Samaritano|SAM|seedpool|SP|
+|ShareIsland|SHRI|SkipTheCommerials|STC|
+|SpeedApp|SPD|Swarmazon|SN|
+|The Leach Zone|TLZ|TheOldSchool|TOS|
+|ToTheGlory|TTG|TorrentHR|THR|
+|Torrenteros|TTR|TorrentLeech|TL|
+|TVChaosUK|TVC|ULCX|ULCX|
+|UTOPIA|UTP|YOiNKED|YOINK|
+|YUSCENE|YUS|||
 
 ## **Setup:**
    - **REQUIRES AT LEAST PYTHON 3.9 AND PIP3**
-   - Needs [mono](https://www.mono-project.com/) on linux systems for BDInfo
    - Also needs MediaInfo and ffmpeg installed on your system
       - On Windows systems, ffmpeg must be added to PATH (https://windowsloop.com/install-ffmpeg-windows-10/)
       - On linux systems, get it from your favorite package manager
@@ -93,7 +104,8 @@ Many thanks to all who have contributed.
       - Then install the requirements `pip install -r requirements.txt`
    - From the installation directory, run `python3 config-generator.py`
    - OR
-   - Copy and Rename `data/example-config.py` to `data/config.py`
+   - Copy `data/example-config.py` to `data/config.py`, leaving `data/example-config.py` intact.
+   - NOTE: New users who use the webui will have the config file generated automatically.
    - Edit `config.py` to use your information (more detailed information in example config options: [docs/example-config.md](docs/example-config.md))
       - tmdb_api key can be obtained from https://www.themoviedb.org/settings/api
       - image host api keys can be obtained from their respective sites

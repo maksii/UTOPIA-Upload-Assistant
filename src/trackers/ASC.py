@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional, Union, cast
 
 import aiofiles
+import cli_ui
 import httpx
 from bs4 import BeautifulSoup
 from pymediainfo import MediaInfo
@@ -391,7 +392,12 @@ class ASC:
         await append_section('BARRINHA_CAPA', await self.format_image(poster))
 
         # Overview
-        overview = season_tmdb.get('overview') or main_tmdb.get('overview')
+        overview: str = season_tmdb.get("overview", "") or main_tmdb.get("overview", "")
+        if not overview:
+            console.print(f"{self.tracker}: [bold red]Sinopse não encontrada no TMDb. Por favor, insira manualmente.[/bold red]")
+            user_input_raw = await asyncio.to_thread(cli_ui.ask_string, f'"{self.tracker}: [green]Digite a sinopse:[/green]"')
+            user_input = (user_input_raw or "").strip()
+            overview = user_input or "Sinopse não encontrada."
         await append_section('BARRINHA_SINOPSE', overview)
 
         # Episode
@@ -538,7 +544,8 @@ class ASC:
         )
 
         if not tags:
-            tags = meta.get('genre') or await self.common.async_input(prompt=f'Digite os gêneros (no formato do {self.tracker}): ')
+            tags_raw = meta.get('genre') or await asyncio.to_thread(cli_ui.ask_string, f'Digite os gêneros (no formato do {self.tracker}): ')
+            tags = (tags_raw or "").strip()
 
         return tags
 
@@ -569,11 +576,16 @@ class ASC:
         }
 
     async def search_existing(self, meta: dict[str, Any], _disctype: str) -> list[dict[str, str]]:
+        found_items: list[dict[str, str]] = []
+        if not meta.get("imdb_id") and not meta.get("anime"):
+            console.print(f"{self.tracker}: [bold red]Ignorando upload devido à ausência de IMDb.[/bold red]")
+            meta["skipping"] = f"{self.tracker}"
+            return found_items
+
         cookie_jar = await self.cookie_validator.load_session_cookies(meta, self.tracker)
         if cookie_jar is not None:
             self.session.cookies = cast(Any, cookie_jar)
 
-        found_items: list[dict[str, str]] = []
         if meta.get('anime'):
             await self.load_localized_data(meta)
             search_name = await self.get_title(meta)
@@ -718,25 +730,51 @@ class ASC:
 
         return None
 
-    async def fetch_layout_data(self, meta: dict[str, Any]) -> Optional[dict[str, Any]]:
-        url = f'{self.base_url}/search.php'
+    async def fetch_layout_data(self, meta: dict[str, Any]) -> dict[str, Any]:
+        url = f"{self.base_url}/search.php"
+        cache_dir = os.path.join(meta.get("base_dir", ""), "tmp")
 
-        async def _fetch(payload: dict[str, Any]) -> Optional[dict[str, Any]]:
+        async def _fetch(payload: dict[str, Any]) -> dict[str, Any]:
+            layout_dict: dict[str, Any] = {}
+            cache_path = os.path.join(cache_dir, f"ASC_layout_cache_{self.layout}.json")
+
+            if os.path.exists(cache_path):
+                try:
+                    async with aiofiles.open(cache_path, encoding="utf-8") as f:
+                        cache = await f.read()
+                        layout_dict = json.loads(cache)
+                        return layout_dict
+                except (OSError, json.JSONDecodeError):
+                    console.print(f"{self.tracker}: [yellow]Failed to read cached layout data.[/yellow]")
+                    pass
+
             try:
                 response = await self.session.post(url, data=payload, timeout=20)
                 response.raise_for_status()
                 response_json = cast(dict[str, Any], response.json())
-                return cast(Optional[dict[str, Any]], response_json.get('ASC'))
-            except Exception:
-                return None
+                layout_dict = response_json.get("ASC", {})
 
-        primary_payload = {'imdb': meta['imdb_info']['imdbID'], 'layout': self.layout}
+                if layout_dict:
+                    try:
+                        async with aiofiles.open(cache_path, "w", encoding="utf-8") as f:
+                            await f.write(json.dumps(layout_dict))
+                    except Exception as e:
+                        console.print(f"{self.tracker}: [red]Failed to cache layout data: {e}[/red]")
+                        pass
+
+                return layout_dict
+            except Exception:
+                return {}
+
+        # Primary attempt
+        primary_payload = {"imdb": meta["imdb_info"]["imdbID"], "layout": self.layout}
         layout_data = await _fetch(primary_payload)
+
         if layout_data:
             return layout_data
 
-        # Fallback
-        fallback_payload = {'imdb': 'tt0013442', 'layout': self.layout}
+        # Fallback attempt
+        fallback_payload = {"imdb": "tt0013442", "layout": self.layout}
         return await _fetch(fallback_payload)
 
     async def build_ratings_bbcode(self, meta: dict[str, Any], ratings_list: list[dict[str, Any]]) -> str:

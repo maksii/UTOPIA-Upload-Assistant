@@ -2,6 +2,7 @@
 import json
 from typing import Any, Optional, Union, cast
 
+import cli_ui
 import httpx
 
 from src.console import console
@@ -112,7 +113,8 @@ class TvmazeManager:
 
             while True:
                 try:
-                    choice = int(input(f"Enter the number of the correct show (1-{len(unique_results)}) or 0 to skip: "))
+                    choice_raw = cli_ui.ask_string(f"Enter the number of the correct show (1-{len(unique_results)}) or 0 to skip: ")
+                    choice = int((choice_raw or "").strip())
                     if choice == 0:
                         console.print("Skipping selection.")
                         break
@@ -168,9 +170,9 @@ class TvmazeManager:
                     return None
                 return None
         except httpx.HTTPStatusError as e:
-            print(f"[ERROR] TVmaze API error: {e.response.status_code}")
+            console.print(f"[ERROR] TVmaze API error: {e.response.status_code}", markup=False)
         except httpx.RequestError as e:
-            print(f"[ERROR] Network error while accessing TVmaze: {e}")
+            console.print(f"[ERROR] Network error while accessing TVmaze: {e}", markup=False)
         return cast(dict[str, Any], {})
 
     async def get_tvmaze_episode_data(
