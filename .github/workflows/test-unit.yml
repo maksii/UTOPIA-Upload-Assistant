@@ -3,8 +3,36 @@ name: Unit tests
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.github/**'
+      - '!.github/workflows/test-unit.yml'
+      - 'Dockerfile'
+      - 'docker-entrypoint.sh'
+      - '.dockerignore'
+      - 'bandit.yaml'
+      - 'pyrightconfig.json'
+      - 'Makefile'
+      - '.gitignore'
+      - '.gitattributes'
+      - 'LICENSE'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.github/**'
+      - '!.github/workflows/test-unit.yml'
+      - 'Dockerfile'
+      - 'docker-entrypoint.sh'
+      - '.dockerignore'
+      - 'bandit.yaml'
+      - 'pyrightconfig.json'
+      - 'Makefile'
+      - '.gitignore'
+      - '.gitattributes'
+      - 'LICENSE'
 
 jobs:
   test:

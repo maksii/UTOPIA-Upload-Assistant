@@ -4,6 +4,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Optional
 from unittest import mock
 
 from web_ui import server
@@ -17,7 +18,7 @@ class FakeProcess:
         self._poll_count = 0
         self.returncode = 0
 
-    def poll(self) -> int | None:
+    def poll(self) -> Optional[int]:
         if self._poll_count == 0:
             self._poll_count += 1
             return None
@@ -67,11 +68,6 @@ class WebUiExecutionTests(unittest.TestCase):
 
 @unittest.skipIf(os.name == "nt", "Docker entrypoint tests require bash and Unix paths")
 class DockerEntrypointTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self.venv_path = Path("/venv/bin")
-        self.venv_path.mkdir(parents=True, exist_ok=True)
-        (self.venv_path / "activate").write_text("true\n", encoding="utf-8")
-
     def test_entrypoint_defaults_to_upload_py(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)

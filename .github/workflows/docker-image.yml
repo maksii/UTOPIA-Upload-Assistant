@@ -4,6 +4,18 @@ on:
   push:
     branches:
       - '**'
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - 'tests/**'
+      - '.github/**'
+      - '!.github/workflows/docker-image.yml'
+      - 'bandit.yaml'
+      - 'pyrightconfig.json'
+      - 'Makefile'
+      - '.gitignore'
+      - '.gitattributes'
+      - 'LICENSE'
   release:
     types:
       - published
