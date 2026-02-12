@@ -31,15 +31,21 @@ class WebUiExecutionTests(unittest.TestCase):
     def test_execute_command_streams_initial_message(self) -> None:
         payload = {"path": "/data/sample.mkv", "args": "--flag value", "session_id": "abc"}
 
-        with (
-            mock.patch.object(server, "_resolve_user_path", return_value="/data/sample.mkv"),
-            mock.patch.object(server.subprocess, "Popen", return_value=FakeProcess()),
+        with server.app.test_request_context(
+            "/api/execute", method="POST", json=payload
         ):
-            server.request.json = payload
-            server.request.method = "POST"
-            server.request.path = "/api/execute"
-            response = server.execute_command()
-            chunks = "".join(response.response)
+            with (
+                mock.patch.object(server, "_verify_csrf_header", return_value=True),
+                mock.patch.object(server, "_resolve_user_path", return_value="/data/sample.mkv"),
+                mock.patch.object(server, "_assert_safe_resolved_path"),
+                mock.patch.dict(os.environ, {"UA_WEBUI_USE_SUBPROCESS": "1"}),
+                mock.patch.object(server.subprocess, "Popen", return_value=FakeProcess()),
+            ):
+                response = server.execute_command()
+                chunks = "".join(
+                    chunk.decode() if isinstance(chunk, bytes) else chunk
+                    for chunk in response.response
+                )
 
         self.assertIn("Executing:", chunks)
         self.assertIn("upload.py", chunks)
@@ -48,13 +54,18 @@ class WebUiExecutionTests(unittest.TestCase):
         process = FakeProcess()
         server.active_processes["sess"] = {"process": process}
 
-        server.request.json = {"session_id": "sess", "input": "y"}
-        response = server.send_input()
+        with server.app.test_request_context(
+            "/api/input", method="POST", json={"session_id": "sess", "input": "y"}
+        ):
+            with mock.patch.object(server, "_is_authenticated", return_value=True):
+                response = server.send_input()
 
-        self.assertEqual(response["json"]["success"], True)
+        data = response.get_json()
+        self.assertTrue(data["success"])
         self.assertIn("y\n", process.stdin.getvalue())
 
 
+@unittest.skipIf(os.name == "nt", "Docker entrypoint tests require bash and Unix paths")
 class DockerEntrypointTests(unittest.TestCase):
     def setUp(self) -> None:
         self.venv_path = Path("/venv/bin")

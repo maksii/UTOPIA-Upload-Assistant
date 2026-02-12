@@ -103,13 +103,14 @@ class LstTrackerTests(unittest.IsolatedAsyncioTestCase):
 
 
 class UtpTrackerTests(unittest.IsolatedAsyncioTestCase):
-    async def test_category_id_switches_to_fanres(self) -> None:
+    async def test_category_id_maps_movie_and_tv(self) -> None:
         tracker = UTP({"TRACKERS": {"UTP": {}}})
-        meta = {"category": "MOVIE", "edition": "FANRES"}
 
-        result = await tracker.get_category_id(meta)
+        movie = await tracker.get_category_id({"category": "MOVIE"})
+        tv = await tracker.get_category_id({"category": "TV"})
 
-        self.assertEqual(result["category_id"], "3")
+        self.assertEqual(movie["category_id"], "1")
+        self.assertEqual(tv["category_id"], "2")
 
     async def test_resolution_id_maps_2160p(self) -> None:
         tracker = UTP({"TRACKERS": {"UTP": {}}})

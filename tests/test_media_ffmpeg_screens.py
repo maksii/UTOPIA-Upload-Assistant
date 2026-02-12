@@ -26,7 +26,10 @@ class MediaInfoAndScreensTests(unittest.IsolatedAsyncioTestCase):
             video_path = os.path.join(base_dir, "Sample.Movie.2024.mkv")
             await asyncio.to_thread(Path(video_path).write_bytes, b"fake movie")
 
-            with mock.patch("src.exportmi.MediaInfo.parse", side_effect=fake_parse), mock.patch("src.exportmi.setup_mediainfo_library", return_value=None):
+            # exportInfo calls os.chdir() into the video's directory; on Windows
+            # the CWD holds the temp dir open and cleanup fails with
+            # PermissionError.  Mock os.chdir to avoid this.
+            with mock.patch("src.exportmi.MediaInfo.parse", side_effect=fake_parse), mock.patch("src.exportmi.setup_mediainfo_library", return_value=None), mock.patch("os.chdir"):
                 mi = await exportmi.exportInfo(
                     video=video_path,
                     isdir=False,

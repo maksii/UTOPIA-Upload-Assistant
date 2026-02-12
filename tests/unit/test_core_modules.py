@@ -63,11 +63,11 @@ class AudioHelperTests(unittest.TestCase):
 class BbcodeTests(unittest.TestCase):
     def test_clean_hdb_description_removes_hdbits(self) -> None:
         bbcode = BBCODE()
-        description = "https://t.hdbits.org/image.png\n[url=https://imgbox.com/abc][img]https://thumbs2.imgbox.com/xx_t.png[/img][/url]"
+        description = "[url=https://t.hdbits.org/details.php?id=123][/url]\n[url=https://imgbox.com/abc][img]https://thumbs2.imgbox.com/xx_t.png[/img][/url]"
 
         cleaned, images = bbcode.clean_hdb_description(description)
 
-        self.assertIn("hdbits.org", cleaned)
+        self.assertNotIn("hdbits.org", cleaned)
         self.assertEqual(len(images), 1)
 
 
