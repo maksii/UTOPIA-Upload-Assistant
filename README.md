@@ -3,8 +3,6 @@
 [![Docker Hub](https://img.shields.io/docker/pulls/maksii/utopia-upload-assistant?logo=docker&label=Docker%20Hub)](https://hub.docker.com/r/maksii/utopia-upload-assistant)
 [![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org/downloads/)
 
-Discord support https://discord.gg/QHHAZu7e2A
-
 # Upload Assistant
 
 A simple tool to take the work out of uploading.
@@ -12,6 +10,10 @@ A simple tool to take the work out of uploading.
 This project is a fork of the original work of L4G https://github.com/L4GSP1KE/Upload-Assistant
 Immense thanks to him for establishing this project. Without his (and supporters) time and effort, this fork would not be a thing.
 Many thanks to all who have contributed.
+
+## About This Fork
+
+This fork is based on [Audionut Upload Assistant](https://github.com/Audionut/Upload-Assistant). Big thanks to Audionut and the community—to everyone who contributed, used Upload Assistant, and shared it for the benefit of others.
 
 ## What It Can Do:
   - Generates and Parses MediaInfo/BDInfo.
