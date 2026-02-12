@@ -1,21 +1,7 @@
-### NOTE:
-- This project is in development freeze. Only critical bugs will be addressed moving forward.
-- More details on the future of Upload Assistant will be available at a later date.
-- Thanks to all who have contributed to this project, to everyone who has used Upload Assistant and everyone who has shared this project for the benefit of others.
-- A special thankyou to all of the site staffers who have shown great patience and understanding, during the development of Upload Assistant. Each and everyone one of you, who fixed issues, and quietly addressed those same issues with me. I can't emphasize enough how that has allowed me to focus entirely on fixing the issues code side, and the boost to motivation that it gave.
-- To those of you who I will not name, working in tandem to bring new features to the ecosystem, you rock.
-- Specifically, to everyone at Aither. You're unwavering support has been truly appreciated.
-- Last but certainly not least, a huge thanks to @wastaken7, who contributed greatly to the success of Upload Assistant. Not only did wasteken7 being a whole suite of new site support, but he persistently maintained all of those sites. The sheer amount of refactoring work on the codebase, to increase the ease of development cannot be overstated.
-- Upload Assistant is not dead. I look forward to sharing a new chapter in the future.
-
-
-[![Create and publish a Docker image](https://github.com/Audionut/Upload-Assistant/actions/workflows/docker-image.yml/badge.svg?branch=master)](https://github.com/Audionut/Upload-Assistant/actions/workflows/docker-image.yml)
-[![Python Code Analysis](https://github.com/Audionut/Upload-Assistant/actions/workflows/python-code-analysis.yml/badge.svg?branch=master)](https://github.com/Audionut/Upload-Assistant/actions/workflows/python-code-analysis.yml)
-[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://www.python.org/downloads/)
-[![Security: Bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
-[![Security: Safety](https://img.shields.io/badge/security-safety-green.svg)](https://github.com/pyupio/safety)
-[![Lint: Ruff](https://img.shields.io/badge/lint-ruff-4B8BBE.svg?logo=ruff&logoColor=white)](https://github.com/astral-sh/ruff)
-[![Type Checker: Pyright](https://img.shields.io/badge/type%20checker-pyright-2D7FF9.svg?logo=python&logoColor=white)](https://github.com/microsoft/pyright)
+[![Docker Build](https://github.com/maksii/UTOPIA-Upload-Assistant/actions/workflows/docker-image.yml/badge.svg?branch=main)](https://github.com/maksii/UTOPIA-Upload-Assistant/actions/workflows/docker-image.yml)
+[![Unit Tests](https://github.com/maksii/UTOPIA-Upload-Assistant/actions/workflows/test-unit.yml/badge.svg?branch=main)](https://github.com/maksii/UTOPIA-Upload-Assistant/actions/workflows/test-unit.yml)
+[![Docker Hub](https://img.shields.io/docker/pulls/maksii/utopia-upload-assistant?logo=docker&label=Docker%20Hub)](https://hub.docker.com/r/maksii/utopia-upload-assistant)
+[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org/downloads/)
 
 Discord support https://discord.gg/QHHAZu7e2A
 
@@ -89,11 +75,11 @@ Many thanks to all who have contributed.
    - Also needs MediaInfo and ffmpeg installed on your system
       - On Windows systems, ffmpeg must be added to PATH (https://windowsloop.com/install-ffmpeg-windows-10/)
       - On linux systems, get it from your favorite package manager
-      - If you have issues with ffmpeg, such as `max workers` errors, see this [wiki](https://github.com/Audionut/Upload-Assistant/wiki/ffmpeg---max-workers-issues)
+      - If you have issues with ffmpeg, such as `max workers` errors, see this [wiki](https://github.com/maksii/UTOPIA-Upload-Assistant/wiki/ffmpeg---max-workers-issues)
    - Get the source:
-      - Clone the repo to your system `git clone https://github.com/Audionut/Upload-Assistant.git`
+      - Clone the repo to your system `git clone https://github.com/maksii/UTOPIA-Upload-Assistant.git`
       - Fetch all of the release tags `git fetch --all --tags`
-      - Check out the specifc release: see [releases](https://github.com/Audionut/Upload-Assistant/releases)
+      - Check out the specifc release: see [releases](https://github.com/maksii/UTOPIA-Upload-Assistant/releases)
       - `git checkout tags/tagname` where `tagname` is the release name, eg `v5.0.0`
       - or download a zip of the source from the releases page and create/overwrite a local copy.
    - Install necessary python modules `pip3 install --user -U -r requirements.txt`
@@ -110,7 +96,7 @@ Many thanks to all who have contributed.
       - tmdb_api key can be obtained from https://www.themoviedb.org/settings/api
       - image host api keys can be obtained from their respective sites
 
-   **Additional Resources are found in the [wiki](https://github.com/Audionut/Upload-Assistant/wiki)**
+   **Additional Resources are found in the [wiki](https://github.com/maksii/UTOPIA-Upload-Assistant/wiki)**
 
    Feel free to contact me if you need help, I'm not that hard to find.
 
@@ -131,6 +117,11 @@ Many thanks to all who have contributed.
   - CLI arguments: [docs/cli-args.md](docs/cli-args.md)
 
 ## **Docker Usage:**
+
+  ```bash
+  docker pull maksii/utopia-upload-assistant:latest
+  ```
+
   Visit our wonderful [docker usage](docs/docker-wiki-full.md)
 
   Also see this excellent video put together by a community member https://videos.badkitty.zone/ua

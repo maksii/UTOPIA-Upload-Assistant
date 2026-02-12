@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Get full history for changelog generation
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.REPO_TOKEN }}
 
       - name: Validate version format
         run: |
@@ -315,15 +315,4 @@ jobs:
           echo "📄 Version file updated and committed with tag: ${{ env.VERSION }}"
           echo "🏷️ Tag includes the version commit"
 
-      - name: Trigger Docker build
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'docker-image.yml',
-              ref: '${{ env.VERSION }}'
-            });
-            console.log('🐳 Triggered Docker workflow for tag: ${{ env.VERSION }}');
+      # Docker build is triggered automatically by the release:published event in docker-image.yml
