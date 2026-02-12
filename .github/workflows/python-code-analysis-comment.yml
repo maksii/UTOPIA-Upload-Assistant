@@ -14,12 +14,12 @@ permissions:
 
 jobs:
   pr-comment:
-    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'skipped'
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'skipped' && github.event.workflow_run.actor.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
 
     steps:
     - name: Download Bandit Results
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         run-id: ${{ github.event.workflow_run.id }}
         repository: ${{ github.repository }}
@@ -29,7 +29,7 @@ jobs:
         path: artifacts
 
     - name: Download Safety Results
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         run-id: ${{ github.event.workflow_run.id }}
         repository: ${{ github.repository }}
@@ -39,7 +39,7 @@ jobs:
         path: artifacts
 
     - name: Download Pyright Results
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         run-id: ${{ github.event.workflow_run.id }}
         repository: ${{ github.repository }}
@@ -49,7 +49,7 @@ jobs:
         path: artifacts
 
     - name: Download Ruff Results
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         run-id: ${{ github.event.workflow_run.id }}
         repository: ${{ github.repository }}
@@ -59,7 +59,7 @@ jobs:
         path: artifacts
 
     - name: Download Deprecation Warnings
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         run-id: ${{ github.event.workflow_run.id }}
         repository: ${{ github.repository }}
@@ -69,7 +69,7 @@ jobs:
         path: artifacts
 
     - name: Post Results to PR
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       with:
         script: |
           const fs = require('fs');
