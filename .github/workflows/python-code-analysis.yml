@@ -136,14 +136,14 @@ jobs:
 
     - name: Upload Deprecation Warnings
       if: github.event_name == 'pull_request'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: deprecation-warnings-${{ matrix.python-version }}
         path: deprecation-warnings-${{ matrix.python-version }}.txt
 
     - name: Upload Ruff Results
       if: github.event_name == 'pull_request'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: ruff-results-${{ matrix.python-version }}
         path: ruff-results-${{ matrix.python-version }}.txt
@@ -160,7 +160,7 @@ jobs:
 
     - name: Upload Pyright Results
       if: github.event_name == 'pull_request'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: pyright-results-${{ matrix.python-version }}
         path: pyright-results-${{ matrix.python-version }}.txt
@@ -200,7 +200,7 @@ jobs:
 
     - name: Upload Bandit Results
       if: github.event_name == 'pull_request'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: bandit-results-${{ matrix.python-version }}
         path: bandit-results-${{ matrix.python-version }}.txt
@@ -217,7 +217,7 @@ jobs:
 
     - name: Upload Safety Results
       if: github.event_name == 'pull_request'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: safety-results-${{ matrix.python-version }}
         path: safety-results-${{ matrix.python-version }}.txt
