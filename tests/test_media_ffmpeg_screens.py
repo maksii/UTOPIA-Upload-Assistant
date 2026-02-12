@@ -7,26 +7,7 @@ from pathlib import Path
 from unittest import mock
 
 from src import exportmi, takescreens
-
-
-class FakeFFmpegCommand:
-    def __init__(self) -> None:
-        self._cmd = ["ffmpeg", "-i", "input", "-filter", "showinfo"]
-
-    def __getitem__(self, _key: str) -> "FakeFFmpegCommand":
-        return self
-
-    def filter(self, _name: str) -> "FakeFFmpegCommand":
-        return self
-
-    def output(self, *_args, **_kwargs) -> "FakeFFmpegCommand":
-        return self
-
-    def global_args(self, *_args) -> "FakeFFmpegCommand":
-        return self
-
-    def compile(self) -> list[str]:
-        return self._cmd
+from tests.conftest import FakeFFmpegCommand
 
 
 class MediaInfoAndScreensTests(unittest.IsolatedAsyncioTestCase):

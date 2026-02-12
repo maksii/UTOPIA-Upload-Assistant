@@ -13,6 +13,7 @@ from src.bluray_com import _style_gray, _style_green, _style_specs
 from src.btnid import BtnIdManager
 from src.cleanup import CleanupManager, running_subprocesses
 from src.clients import Clients
+from tests.conftest import FakeResponse
 
 
 class ComparisonManagerTests(unittest.IsolatedAsyncioTestCase):
@@ -106,15 +107,10 @@ class BlurayStyleTests(unittest.TestCase):
 
 class BtnIdTests(unittest.IsolatedAsyncioTestCase):
     async def test_btn_error_returns_zeroes(self) -> None:
+        error_response = FakeResponse({"error": {"code": 401, "message": "Unauthorized IP"}})
+
         async def fake_post(*_args, **_kwargs):
-            class FakeResponse:
-                def raise_for_status(self) -> None:
-                    return None
-
-                def json(self):
-                    return {"error": {"code": 401, "message": "Unauthorized IP"}}
-
-            return FakeResponse()
+            return error_response
 
         class FakeClient:
             async def __aenter__(self):

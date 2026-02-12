@@ -1,7 +1,6 @@
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Any
 from unittest import mock
 
 from src import exportmi, takescreens, tmdb
@@ -10,34 +9,7 @@ from src.clients import Clients
 from src.edition import get_edition
 from src.get_name import NameManager
 from src.uphelper import UploadHelper
-
-
-class FakeFFmpegCommand:
-    def __init__(self) -> None:
-        self._cmd = ["ffmpeg", "-i", "input", "-filter", "showinfo"]
-
-    def __getitem__(self, _key: str) -> "FakeFFmpegCommand":
-        return self
-
-    def filter(self, _name: str) -> "FakeFFmpegCommand":
-        return self
-
-    def output(self, *_args, **_kwargs) -> "FakeFFmpegCommand":
-        return self
-
-    def global_args(self, *_args) -> "FakeFFmpegCommand":
-        return self
-
-    def compile(self) -> list[str]:
-        return self._cmd
-
-
-class FakeDupeTracker:
-    def __init__(self, config: dict[str, Any]) -> None:
-        self.config = config
-
-    async def get_name(self, _meta: dict[str, Any]):
-        return {"name": "Renamed Release"}
+from tests.conftest import FakeDupeTracker, FakeFFmpegCommand
 
 
 class EdgeCaseTests(unittest.IsolatedAsyncioTestCase):
@@ -105,11 +77,11 @@ class EdgeCaseTests(unittest.IsolatedAsyncioTestCase):
         manager = NameManager({"DEFAULT": {}, "TRACKERS": {}})
         name_notag, name, _clean_name, _missing = await manager.get_name(meta)
 
-        self.assertIn("DIRECTOR'S CUT", name)
-        self.assertIn("REPACK", name)
-        self.assertIn("WEB-DL", name)
-        self.assertTrue(name.endswith("-FAKE"))
-        self.assertIn("Sample Movie", name_notag)
+        self.assertIn("DIRECTOR'S CUT", name, msg="Edition should appear in release name")
+        self.assertIn("REPACK", name, msg="Repack tag should appear in release name")
+        self.assertIn("WEB-DL", name, msg="Source WEB-DL should appear in release name")
+        self.assertTrue(name.endswith("-FAKE"), msg="Release name should end with manual tag -FAKE")
+        self.assertIn("Sample Movie", name_notag, msg="Name without tag should contain title")
 
     async def test_missing_tmdb_id_requires_manual_entry(self) -> None:
         with (
@@ -133,8 +105,8 @@ class EdgeCaseTests(unittest.IsolatedAsyncioTestCase):
         meta = {"trackers": ["BHD"], "bloated": False, "debug": False}
         bloated_check(meta, ["fr"], is_eng_original_with_non_eng=True)
 
-        self.assertTrue(meta["bloated"])
-        self.assertNotIn("BHD", meta["trackers"])
+        self.assertTrue(meta["bloated"], msg="Bloated audio check should set bloated flag")
+        self.assertNotIn("BHD", meta["trackers"], msg="BHD should be removed from trackers when bloated")
 
     async def test_trumpable_dupe_sets_trumping(self) -> None:
         config = {"DEFAULT": {}, "TRACKERS": {"FAKE": {"api_key": "fake"}}}
@@ -160,9 +132,9 @@ class EdgeCaseTests(unittest.IsolatedAsyncioTestCase):
             helper.tracker_class_map = {"FAKE": FakeDupeTracker}
             is_dupe, updated = await helper.dupe_check(dupes, meta, "FAKE")
 
-        self.assertFalse(is_dupe)
-        self.assertTrue(updated["were_trumping"])
-        self.assertEqual(updated["trump_reason"], "trumpable_release")
+        self.assertFalse(is_dupe, msg="User chose to trump so release should not be treated as dupe")
+        self.assertTrue(updated["were_trumping"], msg="Meta should record that we are trumping")
+        self.assertEqual(updated["trump_reason"], "trumpable_release", msg="Trump reason should be set")
 
 
 class TorrentClientTests(unittest.IsolatedAsyncioTestCase):

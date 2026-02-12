@@ -13,6 +13,7 @@ from src.sonarr import SonarrManager
 from src.trackerhandle import check_mod_q_and_draft
 from src.trackermeta import TrackerMetaManager
 from src.tvdb import _as_dict_list, _coerce_int
+from tests.conftest import FakeTracker
 
 
 class PrepHelpersTests(unittest.TestCase):
@@ -93,13 +94,10 @@ class SonarrTests(unittest.IsolatedAsyncioTestCase):
 
 class TrackerHandleTests(unittest.IsolatedAsyncioTestCase):
     async def test_check_mod_q_and_draft(self) -> None:
-        class FakeTracker:
+        class FakeAither(FakeTracker):
             tracker = "AITHER"
 
-            async def get_flag(self, _meta, _flag):
-                return "true"
-
-        modq, draft, caps = await check_mod_q_and_draft(FakeTracker(), {"debug": False})
+        modq, draft, caps = await check_mod_q_and_draft(FakeAither({"TRACKERS": {"AITHER": {}}}), {"debug": False})
 
         self.assertEqual(modq, "Yes")
         self.assertIsNone(draft)

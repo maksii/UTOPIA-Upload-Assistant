@@ -1,33 +1,8 @@
 import unittest
-from typing import Any, Optional
 from unittest import mock
 
 from src import trackerstatus
-
-
-class FakeTracker:
-    tracker = "FAKE"
-    banned_groups = []
-
-    def __init__(self, config: dict[str, Any]) -> None:
-        self.config = config
-
-    async def search_existing(self, _meta: dict[str, Any], _disctype: Optional[str]):
-        return []
-
-    async def get_name(self, _meta: dict[str, Any]):
-        return {"name": "Renamed Release"}
-
-
-class FakeTrackerSetup:
-    def __init__(self, config: dict[str, Any]) -> None:
-        self.config = config
-
-    async def check_banned_group(self, *_args, **_kwargs):
-        return False
-
-    async def get_torrent_claims(self, *_args, **_kwargs):
-        return False
+from tests.conftest import FakeTracker, FakeTrackerSetup
 
 
 class TrackerStatusEdgeTests(unittest.IsolatedAsyncioTestCase):
@@ -51,14 +26,18 @@ class TrackerStatusEdgeTests(unittest.IsolatedAsyncioTestCase):
             mock.patch.object(trackerstatus.DupeChecker, "filter_dupes", return_value=[]),
             mock.patch.object(trackerstatus.UploadHelper, "dupe_check", return_value=(False, meta)),
             mock.patch.object(trackerstatus.console, "print") as console_print,
+            mock.patch.object(trackerstatus.cli_ui, "ask_string", return_value="y"),
         ):
             manager = trackerstatus.TrackerStatusManager(config)
             await manager.process_all_trackers(meta)
 
         status = meta["tracker_status"]["FAKE"]
-        self.assertTrue(status["upload"])
-        self.assertFalse(status["dupe"])
-        self.assertTrue(any("applies a naming change" in str(call.args[0]) for call in console_print.call_args_list))
+        self.assertTrue(status["upload"], msg="FAKE tracker should be marked for upload after rename confirm")
+        self.assertFalse(status["dupe"], msg="No dupe was returned so dupe should be False")
+        self.assertTrue(
+            any("applies a naming change" in str(call.args[0]) for call in console_print.call_args_list),
+            msg="Console should print naming change message",
+        )
 
     async def test_duplicate_rule_blocks_upload(self) -> None:
         meta = {
@@ -84,8 +63,8 @@ class TrackerStatusEdgeTests(unittest.IsolatedAsyncioTestCase):
             await manager.process_all_trackers(meta)
 
         status = meta["tracker_status"]["FAKE"]
-        self.assertTrue(status["dupe"])
-        self.assertFalse(status["upload"])
+        self.assertTrue(status["dupe"], msg="When dupe_check returns True, status should be dupe")
+        self.assertFalse(status["upload"], msg="Dupe should block upload")
 
     async def test_missing_imdb_prompts_for_id(self) -> None:
         meta = {
@@ -104,7 +83,7 @@ class TrackerStatusEdgeTests(unittest.IsolatedAsyncioTestCase):
         class FakeTHR(FakeTracker):
             tracker = "THR"
 
-        ask_string = mock.Mock(return_value="tt1234567")
+        ask_string = mock.Mock(side_effect=["tt1234567", "y"])
         with (
             mock.patch.object(trackerstatus, "tracker_class_map", {"THR": FakeTHR}),
             mock.patch.object(trackerstatus, "TRACKER_SETUP", FakeTrackerSetup),
@@ -118,8 +97,10 @@ class TrackerStatusEdgeTests(unittest.IsolatedAsyncioTestCase):
             await manager.process_all_trackers(meta)
 
         status = meta["tracker_status"]["THR"]
-        self.assertTrue(status["upload"])
-        ask_string.assert_called_once()
+        self.assertTrue(status["upload"], msg="THR upload should be True after providing IMDB and confirming")
+        self.assertGreaterEqual(ask_string.call_count, 1, msg="ask_string should be called at least for IMDB prompt")
+        prompt_messages = [call.args[0] if call.args else "" for call in ask_string.call_args_list]
+        self.assertTrue(any("IMDB" in msg or "imdb" in msg.lower() for msg in prompt_messages), msg="Expected ask_string to be called for IMDB id prompt")
 
 
 if __name__ == "__main__":

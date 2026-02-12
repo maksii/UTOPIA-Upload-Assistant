@@ -4,8 +4,12 @@ This directory contains unittest-based tests that exercise core upload flows, co
 
 ## Structure and Coverage
 
+### Shared infrastructure
+- **`conftest.py`**: Shared fixtures and helpers. Defines `FakeFFmpegCommand`, `FakeResponse`, `FakeAsyncClient`, `FakeTracker`, `FakeTrackerSetup`, `FakeTrackerStatusManager`, `FakeDupeTracker`, plus factory helpers `make_meta()`, `make_config()`, and `tmp_config()`. Import from `tests.conftest` in test files.
+- **`_stubs/`**: Optional dependency stubs (aiohttp, flask, cli_ui, etc.) for environments that do not install all third-party packages. Stubs are not on `sys.path` by default; use real packages when installed. For minimal installs, prepend `tests/_stubs` to `sys.path` before running tests.
+
 ### End-to-end flows
-- `test_scenarios.py`: Runs three full upload scenarios (remux movie, web-dl hybrid movie, blu-ray TV series) through `do_the_thing`, including mocked MediaInfo, screenshots, uploads, torrents, and tracker processing.
+- `test_scenarios.py`: Runs four full upload scenarios (remux, web-dl hybrid, blu-ray TV, blu-ray encode) through `do_the_thing` via the **ScenarioRunner** helper, which encapsulates all mocks and the ExitStack. Add new variants by defining a `MediaInfoSpec` and `Scenario` and calling `_run_upload_flow(scenario)`.
 
 ### Media parsing and utilities
 - `test_media_ffmpeg_screens.py`: Exercises MediaInfo export and ffmpeg-based frame parsing and fallback behavior.
@@ -40,25 +44,41 @@ This directory contains unittest-based tests that exercise core upload flows, co
 From the repository root:
 
 ```bash
-ruff check .
-ruff format .
 make test
 ```
 
-The `make test` target runs `python -m unittest discover -s tests -p "test_*.py"`.
+Or directly:
 
-Some environments lack optional third-party dependencies; the tests include lightweight stubs in `tests/` for those modules.
+```bash
+python -m pytest tests/ -v
+```
+
+Run with coverage:
+
+```bash
+make coverage
+# or: python -m pytest tests/ --cov=src --cov-report=term-missing
+```
+
+Lint (includes test code):
+
+```bash
+make lint
+# or: ruff check . && ruff format --check .
+```
+
+Pytest is configured in `pyproject.toml` (`[tool.pytest.ini_options]`). The suite is compatible with both `pytest` and `python -m unittest discover -s tests -p "test_*.py"`.
 
 ## Extending the Suite
 
-- Add new scenario variants in `test_scenarios.py` by extending the `MediaInfoSpec` and `Scenario` fixtures.
-- Add tracker-specific branches in `test_tracker_specific.py` when new trackers or rules are introduced.
+- **New scenario**: In `test_scenarios.py`, define a `MediaInfoSpec` and `Scenario`, then call `await self._run_upload_flow(scenario)`. The **ScenarioRunner** in that file holds all mocks; extend it if you need new patched behavior.
+- **New tracker tests**: Add cases in `test_tracker_specific.py`; use `make_config()` and `make_meta()` from `tests.conftest` for minimal config/meta dicts.
+- **Shared fakes**: Import `FakeTracker`, `FakeResponse`, etc. from `tests.conftest`; add new shared fakes in `conftest.py` when multiple test files need the same stub.
 - Keep external calls mocked with realistic payloads; avoid adding tests that do not cover meaningful logic.
 
 ## Currently Covered
 
-- Full mocked upload flows for three representative scenarios.
-- BluRay remux and BluRay encode flows in the scenario suite.
+- Full mocked upload flows for four representative scenarios (remux, web-dl, blu-ray TV, blu-ray encode).
 - MediaInfo parsing, ffmpeg frame inspection, screenshot upload, TMDb metadata retrieval, torrent creation, and tracker processing.
 - Config validation and tracker setup rules.
 - Tracker-specific naming and mapping for AITHER, LST, UTP, and HUNO.
@@ -73,11 +93,11 @@ Some environments lack optional third-party dependencies; the tests include ligh
 - Web UI validation uses a mocked subprocess; it does not exercise real-time output streaming from a live upload process.
 - Performance and concurrency stress tests.
 
-## Coverage Snapshot
+## Coverage
 
+- Run `make coverage` (or `pytest tests/ --cov=src --cov-report=term-missing`) to report line coverage for `src/`.
 - Core utilities and helpers are covered via `tests/unit/` and focused unit tests.
 - End-to-end flows cover the upload pipeline, media parsing, screenshots, torrents, and tracker interactions.
-- Scenario and edge-case suites cover missing IDs, duplicate rules, bloat audio checks, and tracker naming behavior.
 
 ### Module-level gaps still called out for expansion
 - Cookie auth refresh and login workflows.

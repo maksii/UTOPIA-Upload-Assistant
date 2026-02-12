@@ -1,7 +1,7 @@
 [tool.ruff]
 line-length = 176
 target-version = "py39"
-exclude = ["tests", "data"]
+exclude = ["data"]
 
 [tool.ruff.lint]
 select = [
@@ -41,3 +41,22 @@ reportMissingTypeStubs = false
 reportUnknownMemberType = true
 reportUnknownVariableType = true
 exclude = ["data"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["*Tests"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks integration tests",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 0

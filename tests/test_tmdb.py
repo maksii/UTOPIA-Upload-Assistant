@@ -2,34 +2,7 @@ import unittest
 from unittest import mock
 
 from src.tmdb import TmdbManager
-
-
-class FakeResponse:
-    def __init__(self, payload):
-        self._payload = payload
-        self.status_code = 200
-
-    def json(self):
-        return self._payload
-
-    def raise_for_status(self) -> None:
-        return None
-
-
-class FakeAsyncClient:
-    def __init__(self, payload):
-        self._payload = payload
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        _ = (exc_type, exc, tb)
-        return None
-
-    async def get(self, _url, params=None, timeout=None):
-        _ = (params, timeout)
-        return FakeResponse(self._payload)
+from tests.conftest import FakeAsyncClient
 
 
 class TmdbTests(unittest.IsolatedAsyncioTestCase):
@@ -37,7 +10,7 @@ class TmdbTests(unittest.IsolatedAsyncioTestCase):
         config = {"DEFAULT": {"tmdb_api": "fake_key"}}
         manager = TmdbManager(config)
         payload = {"movie_results": [{"id": 12345, "original_language": "en"}], "tv_results": []}
-        fake_client = FakeAsyncClient(payload)
+        fake_client = FakeAsyncClient(get_payload=payload)
 
         with mock.patch("src.tmdb.httpx.AsyncClient", return_value=fake_client):
             category, tmdb_id, original_language, filename_search = await manager.get_tmdb_from_imdb("tt1234567")
@@ -54,7 +27,7 @@ class TmdbTests(unittest.IsolatedAsyncioTestCase):
             "movie_results": [{"id": 111, "original_language": "en"}],
             "tv_results": [{"id": 222, "original_language": "ja"}],
         }
-        fake_client = FakeAsyncClient(payload)
+        fake_client = FakeAsyncClient(get_payload=payload)
 
         with mock.patch("src.tmdb.httpx.AsyncClient", return_value=fake_client):
             category, tmdb_id, original_language, filename_search = await manager.get_tmdb_from_imdb(

@@ -13,6 +13,7 @@ from typing import Any, Optional
 from unittest import mock
 
 from src import exportmi
+from tests.conftest import FakeTracker, FakeTrackerStatusManager
 
 
 @dataclass(frozen=True)
@@ -74,26 +75,6 @@ class Scenario:
     imdb_id: int
     tvdb_id: int
     mediainfo: MediaInfoSpec
-
-
-class FakeTracker:
-    approved_image_hosts = ["imgbb"]
-    torrent_url = "https://tracker.example/torrents/"
-
-    def __init__(self, config: dict[str, Any]) -> None:
-        self.config = config
-
-    async def check_image_hosts(self, _meta: dict[str, Any]) -> None:
-        return None
-
-
-class FakeTrackerStatusManager:
-    def __init__(self, config: dict[str, Any]) -> None:
-        self.config = config
-
-    async def process_all_trackers(self, meta: dict[str, Any]) -> int:
-        meta["tracker_status"] = {tracker: {"upload": True, "status_message": "OK", "torrent_id": 123} for tracker in meta.get("trackers", [])}
-        return len(meta.get("trackers", []))
 
 
 def _write_config(base_dir: Path) -> Path:
@@ -303,31 +284,18 @@ def _mediainfo_json(spec: MediaInfoSpec) -> dict[str, Any]:
     }
 
 
-class UploadScenarioTests(unittest.IsolatedAsyncioTestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.base_dir = Path(__file__).resolve().parents[1]
-        cls.config_path = cls.base_dir / "data" / "config.py"
-        cls.original_config = cls.config_path.read_text(encoding="utf-8") if cls.config_path.exists() else None
-        _write_config(cls.base_dir)
-        if "upload" in sys.modules:
-            del sys.modules["upload"]
-        import upload
+class ScenarioRunner:
+    """Runs a single upload scenario with all external deps mocked. Returns captured meta from process_trackers."""
 
-        cls.upload = importlib.reload(upload)
+    def __init__(self, scenario: Scenario, upload_module: Any) -> None:
+        self.scenario = scenario
+        self.upload = upload_module
+        self.captured_meta: list[dict[str, Any]] = []
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        if cls.original_config is None:
-            if cls.config_path.exists():
-                cls.config_path.unlink()
-        else:
-            cls.config_path.write_text(cls.original_config, encoding="utf-8")
-
-    async def _run_upload_flow(self, scenario: Scenario) -> None:
+    async def run(self) -> list[dict[str, Any]]:
         upload = self.upload
+        scenario = self.scenario
         tracker_map = {scenario.tracker: FakeTracker}
-        captured_meta: list[dict[str, Any]] = []
 
         async def fake_update_notification(_base_dir: str) -> str:
             return "v0.0.0"
@@ -335,10 +303,10 @@ class UploadScenarioTests(unittest.IsolatedAsyncioTestCase):
         async def fake_get_mkbrr_path(_meta: dict[str, Any], _base_dir: Optional[str] = None) -> str:
             return "/tmp/fake-mkbrr"
 
-        async def fake_handle_queue(_path: str, _meta: dict[str, Any], _paths: list[str], _base_dir: str):
+        async def fake_handle_queue(_path: str, _meta: dict[str, Any], _paths: list[str], _base_dir: str) -> Any:
             return [_path], None
 
-        async def fake_gather_prep(_self, meta: dict[str, Any], mode: str) -> dict[str, Any]:
+        async def fake_gather_prep(_self: Any, meta: dict[str, Any], mode: str) -> dict[str, Any]:
             _ = mode
             meta["screens"] = 3
             meta["cutoff"] = 1
@@ -376,7 +344,6 @@ class UploadScenarioTests(unittest.IsolatedAsyncioTestCase):
             meta["mal_id"] = 0
             meta["tvmaze_id"] = 0
             meta["uuid"] = meta.get("uuid") or os.path.basename(meta["path"])
-
             file_list = meta.get("filelist", [])
             if not file_list:
                 if scenario.is_disc:
@@ -394,7 +361,7 @@ class UploadScenarioTests(unittest.IsolatedAsyncioTestCase):
                 "files": [{"file": Path(file_list[0]).name, "length": "01:58:34"}],
             }
 
-            def fake_parse(_path: str, output: str = "STRING", full: bool = False):
+            def fake_parse(_path: str, output: str = "STRING", full: bool = False) -> Any:
                 _ = full
                 if output == "STRING":
                     return _mediainfo_text(scenario.mediainfo)
@@ -411,7 +378,7 @@ class UploadScenarioTests(unittest.IsolatedAsyncioTestCase):
                 )
             return meta
 
-        async def fake_get_name(_meta: dict[str, Any]):
+        async def fake_get_name(_meta: dict[str, Any]) -> tuple[Any, ...]:
             name = scenario.mediainfo.release_name().replace(".", " ")
             return name, name, name.replace(" ", "."), []
 
@@ -421,47 +388,46 @@ class UploadScenarioTests(unittest.IsolatedAsyncioTestCase):
         async def fake_validate_tracker_logins(_meta: dict[str, Any], _trackers: Optional[list[str]] = None) -> None:
             return None
 
-        async def fake_screenshots(*_args, **_kwargs) -> None:
+        async def fake_screenshots(*_args: Any, **_kwargs: Any) -> None:
             return None
 
         async def fake_upload_screens(
-            _meta: dict[str, Any], _screens: int, _img_host_num: int, _i: int, _total: int, _custom: list[str], return_dict: dict[str, Any], **_kwargs
+            _meta: dict[str, Any],
+            _screens: int,
+            _img_host_num: int,
+            _i: int,
+            _total: int,
+            _custom: list[str],
+            return_dict: dict[str, Any],
+            **_kwargs: Any,
         ) -> None:
             images = [
-                {
-                    "img_url": "https://imgbb.com/fake1.png",
-                    "raw_url": "https://imgbb.com/raw1.png",
-                    "web_url": "https://imgbb.com/view1",
-                },
-                {
-                    "img_url": "https://imgbb.com/fake2.png",
-                    "raw_url": "https://imgbb.com/raw2.png",
-                    "web_url": "https://imgbb.com/view2",
-                },
+                {"img_url": "https://imgbb.com/fake1.png", "raw_url": "https://imgbb.com/raw1.png", "web_url": "https://imgbb.com/view1"},
+                {"img_url": "https://imgbb.com/fake2.png", "raw_url": "https://imgbb.com/raw2.png", "web_url": "https://imgbb.com/view2"},
             ]
             _meta["image_list"] = images
             return_dict.update({"image_list": images})
 
-        async def fake_gen_desc(meta: dict[str, Any], *_args, **_kwargs) -> dict[str, Any]:
+        async def fake_gen_desc(meta: dict[str, Any], *_args: Any, **_kwargs: Any) -> dict[str, Any]:
             meta["description"] = "Fake description"
             return meta
 
-        async def fake_create_torrent(meta: dict[str, Any], _path: Path, name: str, *_args, **_kwargs) -> str:
+        async def fake_create_torrent(meta: dict[str, Any], _path: Path, name: str, *_args: Any, **_kwargs: Any) -> str:
             torrent_path = Path(meta["base_dir"]) / "tmp" / meta["uuid"] / f"{name}.torrent"
             await asyncio.to_thread(torrent_path.write_bytes, b"fake torrent")
             return str(torrent_path)
 
-        async def fake_process_trackers(meta: dict[str, Any], *_args, **_kwargs) -> None:
+        async def fake_process_trackers(meta: dict[str, Any], *_args: Any, **_kwargs: Any) -> None:
             meta["tracker_status"] = {tracker: {"torrent_id": 123, "status_message": "Uploaded"} for tracker in meta.get("trackers", [])}
-            captured_meta.append(meta)
+            self.captured_meta.append(meta)
+
+        async def fake_find_existing_torrent(_meta: dict[str, Any]) -> None:
+            return None
 
         async def fake_process_cross_seeds(_meta: dict[str, Any]) -> None:
             return None
 
-        async def fake_find_existing_torrent(_meta: dict[str, Any]):
-            return None
-
-        def fake_parse(args: list[str], meta: dict[str, Any]):
+        def fake_parse_args(args: list[str], meta: dict[str, Any]) -> tuple[dict[str, Any], None, None]:
             meta = dict(meta)
             meta.update(
                 {
@@ -486,7 +452,6 @@ class UploadScenarioTests(unittest.IsolatedAsyncioTestCase):
                 movie_dir = temp_path
                 video_path = movie_dir / f"{scenario.mediainfo.release_name()}.mkv"
             await asyncio.to_thread(video_path.write_bytes, b"fake video")
-
             argv = ["upload.py", str(movie_dir if scenario.is_disc else video_path)]
             try:
                 previous_cwd = os.getcwd()
@@ -513,7 +478,7 @@ class UploadScenarioTests(unittest.IsolatedAsyncioTestCase):
                     stack.enter_context(mock.patch.object(upload, "process_trackers", side_effect=fake_process_trackers))
                     stack.enter_context(mock.patch.object(upload, "process_cross_seeds", side_effect=fake_process_cross_seeds))
                     stack.enter_context(mock.patch.object(upload.client, "find_existing_torrent", side_effect=fake_find_existing_torrent))
-                    stack.enter_context(mock.patch.object(upload.parser, "parse", side_effect=fake_parse))
+                    stack.enter_context(mock.patch.object(upload.parser, "parse", side_effect=fake_parse_args))
                     stack.enter_context(mock.patch.object(upload, "tracker_class_map", tracker_map))
                     stack.enter_context(mock.patch.object(sys, "argv", argv))
                     await upload.do_the_thing(upload.base_dir)
@@ -522,14 +487,42 @@ class UploadScenarioTests(unittest.IsolatedAsyncioTestCase):
                     os.chdir(upload.base_dir)
                 else:
                     os.chdir(previous_cwd)
+        return self.captured_meta
 
-            self.assertTrue(captured_meta)
-            uploaded_meta = captured_meta[-1]
-            self.assertEqual(uploaded_meta.get("category"), scenario.category)
-            self.assertEqual(uploaded_meta.get("name"), scenario.mediainfo.release_name().replace(".", " "))
-            self.assertIn(scenario.tracker, uploaded_meta.get("trackers", []))
-            torrent_path = Path(uploaded_meta["base_dir"]) / "tmp" / uploaded_meta["uuid"] / "BASE.torrent"
-            self.assertTrue(torrent_path.exists())
+
+class UploadScenarioTests(unittest.IsolatedAsyncioTestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.base_dir = Path(__file__).resolve().parents[1]
+        cls.config_path = cls.base_dir / "data" / "config.py"
+        cls.original_config = cls.config_path.read_text(encoding="utf-8") if cls.config_path.exists() else None
+        _write_config(cls.base_dir)
+        if "upload" in sys.modules:
+            del sys.modules["upload"]
+        import upload
+
+        cls.upload = importlib.reload(upload)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        if cls.original_config is None:
+            if cls.config_path.exists():
+                cls.config_path.unlink()
+        else:
+            cls.config_path.write_text(cls.original_config, encoding="utf-8")
+
+    async def _run_upload_flow(self, scenario: Scenario) -> None:
+        runner = ScenarioRunner(scenario, self.upload)
+        captured_meta = await runner.run()
+        self.assertTrue(captured_meta, msg="process_trackers should have been called with meta")
+        uploaded_meta = captured_meta[-1]
+        self.assertEqual(uploaded_meta.get("category"), scenario.category, msg="Category should match scenario")
+        self.assertEqual(
+            uploaded_meta.get("name"), scenario.mediainfo.release_name().replace(".", " "), msg="Name should match mediainfo release name"
+        )
+        self.assertIn(scenario.tracker, uploaded_meta.get("trackers", []), msg="Tracker should be in uploaded meta trackers")
+        torrent_path = Path(uploaded_meta["base_dir"]) / "tmp" / uploaded_meta["uuid"] / "BASE.torrent"
+        self.assertTrue(torrent_path.exists(), msg=f"Expected torrent at {torrent_path}")
 
     async def test_remux_movie_flow(self) -> None:
         media = MediaInfoSpec(
