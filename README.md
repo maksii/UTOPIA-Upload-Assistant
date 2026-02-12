@@ -1,7 +1,7 @@
 [![Docker Build](https://github.com/maksii/UTOPIA-Upload-Assistant/actions/workflows/docker-image.yml/badge.svg?branch=main)](https://github.com/maksii/UTOPIA-Upload-Assistant/actions/workflows/docker-image.yml)
 [![Unit Tests](https://github.com/maksii/UTOPIA-Upload-Assistant/actions/workflows/test-unit.yml/badge.svg?branch=main)](https://github.com/maksii/UTOPIA-Upload-Assistant/actions/workflows/test-unit.yml)
 [![Docker Hub](https://img.shields.io/docker/pulls/maksii/utopia-upload-assistant?logo=docker&label=Docker%20Hub)](https://hub.docker.com/r/maksii/utopia-upload-assistant)
-[![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/python-3.14-blue)](https://www.python.org/downloads/)
 
 # Upload Assistant
 
@@ -73,7 +73,7 @@ This fork is based on [Audionut Upload Assistant](https://github.com/Audionut/Up
 |YUSCENE|YUS|||
 
 ## **Setup:**
-   - **REQUIRES AT LEAST PYTHON 3.9 AND PIP3**
+   - **REQUIRES PYTHON 3.14 AND PIP3**
    - Also needs MediaInfo and ffmpeg installed on your system
       - On Windows systems, ffmpeg must be added to PATH (https://windowsloop.com/install-ffmpeg-windows-10/)
       - On linux systems, get it from your favorite package manager
